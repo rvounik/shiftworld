@@ -1,6 +1,9 @@
- import React from '../../node_modules/react/react';
- import { render } from '../../node_modules/react-dom/index';
+ import React from 'react';
+ import { render } from 'react-dom';
+
+ import Game from './Game';
 
  render(
- <p>this is react speaking</p>, document.getElementById('react-hook')
+     <Game/>,
+     document.getElementById('react-hook')
  );
