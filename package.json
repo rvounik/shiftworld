@@ -20,7 +20,8 @@
     "babel": "^5.8.23",
     "babel-polyfill": "^6.7.2",
     "react": "^15.3.2",
-    "react-dom": "^15.3.2"
+    "react-dom": "^15.3.2",
+    "react-canvas": "^1.2.1"
   },
   "devDependencies": {
     "babelify": "^6.3.0",
