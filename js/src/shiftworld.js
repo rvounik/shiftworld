@@ -5,5 +5,5 @@
 
  render(
      <Game/>,
-     document.getElementById('react-hook')
+     document.getElementById('canvas-container')
  );
