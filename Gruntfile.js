@@ -1,6 +1,6 @@
 module.exports = function(grunt) {
 
-    // Project configuration
+    // project configuration
     grunt.initConfig({
         pkg: grunt.file.readJSON('package.json'),
         browserify: {
@@ -30,6 +30,11 @@ module.exports = function(grunt) {
                 files: {
                     'web/js/shiftworld.js': ['js/build/compiled.js']
                 }
+            },
+            vendor: {
+                files: {
+                    'web/js/vendor/polyfill.js': ['node_modules/babel-polyfill/dist/polyfill.min.js']
+                }
             }
         },
         clean: {
@@ -41,6 +46,13 @@ module.exports = function(grunt) {
                 "web/css"
             ]
         },
+        uglify: {
+            "js": {
+                "files": {
+                    "js/build/compiled.js": ["js/build/compiled.js"]
+                }
+            }
+        },
         watch: {
             "project": {
                 "files": [
@@ -51,28 +63,33 @@ module.exports = function(grunt) {
                     'clean:build',
                     "browserify:build",
                     'clean:web',
+                    'uglify:js',
                     "copy:css",
-                    "copy:js"
+                    "copy:js",
+                    'copy:vendor'
                 ]
             }
         }
     });
 
-    // Load the plugins
+    // load the plugins
     grunt.loadNpmTasks('grunt-browserify');
     grunt.loadNpmTasks('grunt-copy');
     grunt.loadNpmTasks('grunt-contrib-watch');
     grunt.loadNpmTasks('grunt-contrib-clean');
+    grunt.loadNpmTasks('grunt-contrib-uglify');
 
-    // Register tasks
+    // register tasks
     grunt.registerTask(
         'default',
         [
             'clean:build',
             'browserify:build',
             'clean:web',
+            'uglify:js',
             'copy:css',
             'copy:js',
+            'copy:vendor',
             'watch:project'
         ]
     );
