@@ -21,11 +21,6 @@ module.exports = function(grunt) {
             options: {
                 punctuation: ''
             },
-            css: {
-                files: {
-                    'web/css/style.css': ['css/src/style.css']
-                }
-            },
             js: {
                 files: {
                     'web/js/shiftworld.js': ['js/build/compiled.js']
@@ -53,18 +48,34 @@ module.exports = function(grunt) {
                 }
             }
         },
+        compass: {
+            "build": {
+                "options": {
+                    "importPath": [
+                        "node_modules"
+                    ],
+                    "sassDir": [
+                        "css/src"
+                    ],
+                    "cssDir": "web/css/",
+                    "environment": "production",
+                    "noLineComments": false,
+                    "outputStyle": "compressed",
+                    "specify": "css/src/screen.scss"
+                }
+            }
+        },
         watch: {
             "project": {
                 "files": [
                     "js/src/*.js",
-                    "css/src/style.css"
+                    "css/src/**"
                 ],
                 "tasks": [
                     'clean:build',
                     "browserify:build",
                     'clean:web',
-                    'uglify:js',
-                    "copy:css",
+                    'compass:build',
                     "copy:js",
                     'copy:vendor'
                 ]
@@ -78,6 +89,7 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-watch');
     grunt.loadNpmTasks('grunt-contrib-clean');
     grunt.loadNpmTasks('grunt-contrib-uglify');
+    grunt.loadNpmTasks('grunt-contrib-compass');
 
     // register tasks
     grunt.registerTask(
@@ -86,11 +98,23 @@ module.exports = function(grunt) {
             'clean:build',
             'browserify:build',
             'clean:web',
-            'uglify:js',
-            'copy:css',
+            'compass:build',
             'copy:js',
             'copy:vendor',
             'watch:project'
+        ]
+    );
+
+    grunt.registerTask(
+        'deploy',
+        [
+            'clean:build',
+            'browserify:build',
+            'clean:web',
+            'compass:build',
+            'uglify:js',
+            'copy:js',
+            'copy:vendor'
         ]
     );
 

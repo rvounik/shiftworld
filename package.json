@@ -28,6 +28,7 @@
     "grunt-babel": "^5.0.3",
     "grunt-browserify": "^4.0.1",
     "grunt-contrib-clean": "^1.0.0",
+    "grunt-contrib-compass": "^1.1.1",
     "grunt-contrib-uglify": "^2.0.0",
     "grunt-contrib-watch": "^1.0.0",
     "grunt-copy": "^0.1.0"
