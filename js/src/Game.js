@@ -1,11 +1,22 @@
-import React, { Component } from '../../node_modules/react/react';
-import { render } from '../../node_modules/react-dom/index';
-import ReactCanvas from '../../node_modules/react-canvas/lib/ReactCanvas';
-var Surface = ReactCanvas.Surface;
-var Image = ReactCanvas.Image;
-var Text = ReactCanvas.Text;
+import React, { Component } from 'react';
+import { render }  from 'react-dom';
 
-class Game extends ReactCanvas.Component {
+/*
+const KEY = {
+    LEFT:  37,
+    RIGHT: 39
+};
+*/
+
+class Game extends React.Component {
+
+    constructor() {
+        super(); // todo is this still good practice?
+        this.state = {
+            context: null
+        };
+        this.ypos=20;
+    }
 
     /*
     render() {
@@ -31,43 +42,41 @@ class Game extends ReactCanvas.Component {
     }
     */
 
+    componentDidMount() {
+        //window.addEventListener('keyup',   this.handleKeys.bind(this, false));
+       // window.addEventListener('keydown', this.handleKeys.bind(this, true));
+        //window.addEventListener('resize',  this.handleResize.bind(this, false));
+
+        const context = this.refs.canvas.getContext('2d');
+        this.setState({ context: context });
+        requestAnimationFrame(() => {this.update()}); // on mount, call update function once
+    }
+
+    update() {
+        let state = this.state;
+        let ypos = this.ypos; // should come from state
+        const context = state.context;
+
+        context.clearRect(0, 0, 320, 240); // wipe canvas
+
+        context.font = "48px serif";
+        context.fillStyle= '#ffffff';
+        context.fillText("Hello world", 10, 70 + (30 * Math.sin(ypos)) );
+        context.fill();
+        context.save(); // update canvas element todo what does this do and what does save do?
+
+        this.ypos+=0.1; // state mutation from update method? not good.
+
+        requestAnimationFrame(() => {this.update()}); // keep calling update function
+    }
+
     render() {
-        var surfaceWidth = window.innerWidth;
-        var surfaceHeight = window.innerHeight;
-        var imageStyle = this.getImageStyle();
-        var textStyle = this.getTextStyle();
         return (
-            <Surface width={surfaceWidth} height={surfaceHeight} left={0} top={0}>
-                <Image style={imageStyle} src='...' />
-                <Text style={textStyle}>
-                    Here is some text below an image.
-                </Text>
-            </Surface>
+            <canvas ref="canvas"
+                width={ 320 }
+                height={ 240 }
+            />
         )
-    }
-
-    getImageStyle() {
-        return {
-            top: 0,
-            left: 0,
-            width: window.innerWidth,
-            height: this.getImageHeight()
-        };
-    }
-
-    getImageHeight() {
-        return Math.round(window.innerHeight / 2);
-    }
-
-    getTextStyle() {
-        return {
-            top: this.getImageHeight() + 10,
-            left: 0,
-            width: window.innerWidth,
-            height: 20,
-            lineHeight: 20,
-            fontSize: 12
-        };
     }
 
 }
