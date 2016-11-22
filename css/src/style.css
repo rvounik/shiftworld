@@ -15,36 +15,36 @@ header h1 {
     font-size: 1.5rem;
     color: limegreen;
 }
-
 .wrapper {
     margin: auto;
     width: 640px;
 }
-
 .canvasholder {
     margin: auto;
     display: inline-block;
     line-height: 0;
     font-size: 0;
     background: #000;
+    box-shadow: none;
 }
 
 @media screen and (max-width: 768px) {
-    .wrapper {
-        max-width: 640px;
-    }
     body {
         margin: 0 auto;
         padding: 0;
         background: #000;
+    }
+    .wrapper {
+        max-width: 640px;
+        width: auto;
     }
     .canvasholder {
         box-shadow: none;
         width: auto;
         height: auto;
     }
-
-    #mycanvas {
+    #canvas {
         width: 100%;
+        max-width: 640px;
     }
 }

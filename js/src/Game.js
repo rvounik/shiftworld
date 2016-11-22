@@ -47,7 +47,7 @@ class Game extends React.Component {
        // window.addEventListener('keydown', this.handleKeys.bind(this, true));
         //window.addEventListener('resize',  this.handleResize.bind(this, false));
 
-        const context = this.refs.canvas.getContext('2d');
+        const context = document.getElementById('canvas').getContext('2d');
         this.setState({ context: context });
         requestAnimationFrame(() => {this.update()}); // on mount, call update function once
     }
@@ -72,9 +72,9 @@ class Game extends React.Component {
 
     render() {
         return (
-            <canvas ref="canvas"
-                width={ 320 }
-                height={ 240 }
+            <canvas id="canvas"
+                width={ 640 }
+                height={ 480 }
             />
         )
     }
