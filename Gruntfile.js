@@ -48,6 +48,13 @@ module.exports = function(grunt) {
                 }
             }
         },
+        autoprefixer: {
+            "build": {
+                "files": {
+                    "web/css/screen.css": "web/css/screen.css"
+                }
+            }
+        },
         compass: {
             "build": {
                 "options": {
@@ -77,7 +84,8 @@ module.exports = function(grunt) {
                     'clean:web',
                     'compass:build',
                     "copy:js",
-                    'copy:vendor'
+                    'copy:vendor',
+                    'autoprefixer:build'
                 ]
             }
         }
@@ -89,6 +97,7 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-watch');
     grunt.loadNpmTasks('grunt-contrib-clean');
     grunt.loadNpmTasks('grunt-contrib-uglify');
+    grunt.loadNpmTasks('grunt-autoprefixer');
     grunt.loadNpmTasks('grunt-contrib-compass');
 
     // register tasks
@@ -101,6 +110,7 @@ module.exports = function(grunt) {
             'compass:build',
             'copy:js',
             'copy:vendor',
+            'autoprefixer:build',
             'watch:project'
         ]
     );
@@ -114,7 +124,8 @@ module.exports = function(grunt) {
             'compass:build',
             'uglify:js',
             'copy:js',
-            'copy:vendor'
+            'copy:vendor',
+            'autoprefixer:build'
         ]
     );
 

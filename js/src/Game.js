@@ -10,12 +10,15 @@ const KEY = {
 
 class Game extends React.Component {
 
-    constructor() {
-        super(); // todo is this still good practice?
+    constructor(props) {
+        super(props);
         this.state = {
-            context: null
+            context: null,
+            maxWidth: 640,
+            maxHeight: 480
         };
-        this.ypos=20;
+
+        this.ypos = 20;
     }
 
     /*
@@ -53,11 +56,10 @@ class Game extends React.Component {
     }
 
     update() {
-        let state = this.state;
-        let ypos = this.ypos; // should come from state
-        const context = state.context;
+        const context = this.state.context;
+        let ypos = this.ypos;
 
-        context.clearRect(0, 0, 320, 240); // wipe canvas
+        this.clearCanvas(); // so.. how do we persist content in the canvas element? next step.
 
         context.font = "48px serif";
         context.fillStyle= '#ffffff';
@@ -65,16 +67,20 @@ class Game extends React.Component {
         context.fill();
         context.save(); // update canvas element todo what does this do and what does save do?
 
-        this.ypos+=0.1; // state mutation from update method? not good.
+        this.ypos += .1; // state mutation from update method? not good.
 
-        requestAnimationFrame(() => {this.update()}); // keep calling update function
+        requestAnimationFrame(() => { this.update() }); // keep calling update function
+    }
+
+    clearCanvas() {
+        this.state.context.clearRect(0, 0, this.state.maxWidth, this.state.maxHeight);
     }
 
     render() {
         return (
             <canvas id="canvas"
-                width={ 640 }
-                height={ 480 }
+                width={ this.state.maxWidth }
+                height={ this.state.maxHeight }
             />
         )
     }
