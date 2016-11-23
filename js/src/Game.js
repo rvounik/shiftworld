@@ -1,11 +1,12 @@
 import React, { Component } from 'react';
 import { render }  from 'react-dom';
+import Square from './Square'
 
 const KEY = {
     UP:  38
 };
 
-class Game extends React.Component {
+class Game extends Component {
     constructor(props) {
         super(props); // see http://stackoverflow.com/questions/30668326/what-is-the-difference-between-using-constructor-vs-getinitialstate-in-react-r
 
@@ -68,10 +69,10 @@ class Game extends React.Component {
         let xpos = 0;
         let ypos = 0;
 
-        //todo: fix die [0] aub.
+        //todo: fix that [0]
             this.state.mapData[0].map((row) => {
                 row.map((key) => {
-                    // todo: extract naar rect component, somehow
+                    // todo: extract to component.. somehow
                     let fillColour = (key == 1 ? "#666" : "#fff");
                     context.beginPath();
                     context.rect(xpos, ypos, this.state.gridSize, this.state.gridSize);
