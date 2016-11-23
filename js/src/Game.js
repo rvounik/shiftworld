@@ -1,61 +1,61 @@
 import React, { Component } from 'react';
 import { render }  from 'react-dom';
 
-/*
 const KEY = {
-    LEFT:  37,
-    RIGHT: 39
+    UP:  38
 };
-*/
 
 class Game extends React.Component {
-
     constructor(props) {
-        super(props);
+        super(props); // see http://stackoverflow.com/questions/30668326/what-is-the-difference-between-using-constructor-vs-getinitialstate-in-react-r
+
+        // set initial state todo: partition
         this.state = {
             context: null,
             maxWidth: 640,
             maxHeight: 480,
-            map: [
-                [1, 1, 1, 1, 1, 1, 1],
-                [1, 0, 0, 0, 0, 0, 1],
-                [1, 0, 0, 0, 0, 0, 1],
-                [1, 0, 0, 0, 0, 0, 1],
-                [1, 0, 0, 0, 0, 1, 1],
-                [1, 0, 0, 0, 1, 1, 1],
-                [1, 1, 0, 1, 1, 1, 1],
-                [1, 1, 0, 1, 1, 1, 1],
-                [1, 1, 1, 1, 1, 1, 1]
-            ]
+            gridSize: 50,
+            mapData: [],
+            keys: {
+                up: false
+            }
         };
-
-        this.ypos = 20;
     }
 
     componentDidMount() {
-        // window.addEventListener('keyup',   this.handleKeys.bind(this, false));
-        // window.addEventListener('keydown', this.handleKeys.bind(this, true));
-        // window.addEventListener('resize',  this.handleResize.bind(this, false));
+        // todo: needs work to handle keyup events
+        window.addEventListener('keyup', this.handleKeys.bind(this, this.state.keys.up!= true));
 
+        // add mapData that was received as props in constructor to the state
+        let newState = Object.assign({}, this.state);
+        newState['mapData'].push(this.props.mapData);
+        this.setState(newState);
+
+        // now that component is mounted the context of canvas element can be determined
         this.setState({ context: document.getElementById('canvas').getContext('2d') });
-        requestAnimationFrame(() => {this.update()}); // on mount, call update function once
+
+        // initialise the update() method that is used for all actions not initiated by the player
+        requestAnimationFrame(() => {this.update()});
+    }
+
+    componentDidUpdate() {
+        // triggered when state changes outside of update() method, for example, a keypress or timer event
+        this.update();
+    }
+
+    handleKeys(value, e){
+        let keys = this.state.keys; // copy state for mutation
+        if(e.keyCode === KEY.UP) keys.up = value; // adjust state
+        this.setState({keys : keys}); // mutate state
     }
 
     update() {
+        // for enemy movement you would add this to the update method:
+        // this.setState({ enemyX: 231 });
+        // note that player movement is handled by key events, not update() !
         const context = this.state.context;
-
-        this.clearCanvas(); // so.. how do we persist content in the canvas element? next step.
-
+        this.clearCanvas();
         this.draw2DMap();
-
-        context.font = "48px serif";
-        context.fillStyle= '#ffffff';
-        context.fillText("Hello world", 10, 70 + (30 * Math.sin(this.ypos)) );
-        context.fill();
-        context.save(); // update canvas element todo what does this do and what does save do?
-
-        this.ypos += .1; // state mutation from update method? not good.
-
         requestAnimationFrame(() => { this.update() }); // keep calling update function
     }
 
@@ -68,15 +68,23 @@ class Game extends React.Component {
         let xpos = 0;
         let ypos = 0;
 
-        for (let key in this.state.map) {
-            console.log('iterating');
-            let fillColour=(key == 1 ? "#000" : "#fff");
-            context.beginPath();
-            context.rect(xpos, ypos, 10, 10);
-            context.fillStyle = fillColour;
-            context.fill();
-            xpos += 10;
-        }
+        //todo: fix die [0] aub.
+            this.state.mapData[0].map((row) => {
+                row.map((key) => {
+                    // todo: extract naar rect component, somehow
+                    let fillColour = (key == 1 ? "#666" : "#fff");
+                    context.beginPath();
+                    context.rect(xpos, ypos, this.state.gridSize, this.state.gridSize);
+                    context.fillStyle = fillColour;
+                    context.strokeStyle = "#000";
+                    context.lineWidth = "0.1";
+                    context.fill();
+                    context.stroke();
+                    xpos += this.state.gridSize;
+                });
+                ypos += this.state.gridSize;
+                xpos = 0;
+            })
    }
 
     render() {
