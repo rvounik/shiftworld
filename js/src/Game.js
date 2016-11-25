@@ -40,18 +40,17 @@ class Game extends Component {
     }
 
     componentDidUpdate() {
-        // triggered when state changes outside of update() method, for example, a keypress or timer event
-        this.update();
+        this.update(); // triggered when state changes outside of update() method, for example, a keypress or timer event
     }
 
     handleKeys(value, e){
-        let keys = this.state.keys; // copy state for mutation
-        if(e.keyCode === KEY.UP) keys.up = value; // adjust state
-        this.setState({keys : keys}); // mutate state
+        let keys = this.state.keys; // copy state
+        if(e.keyCode === KEY.UP) keys.up = value; // mutate state
+        this.setState({keys : keys}); // set state
     }
 
     update() {
-        // for enemy movement you would add this to the update method:
+        // for enemy movement you would, for example, add this to the update method:
         // this.setState({ enemyX: 231 });
 
         this.clearCanvas();
@@ -93,24 +92,6 @@ class Game extends Component {
         this[itemList].push(item);
     }
 
-    /* this version of updateObjects has ability to delete items, too.
-      this is unused in our case since canvas is wiped / recreated every frame
-    updateObjects(items, group){
-        // deletes or renders
-        // wait what. why do I need delete when I redraw the canvas every frame?
-        let index = 0;
-        for (let item of items) {
-            if (item.delete) {
-                // we dont need delete currently since we
-                //this[group].splice(index, 1);
-            } else {
-                items[index].render(this.state);
-            }
-            index++;
-        }
-    }
-    */
-
     renderObjects(items){
         // loops through given items renders them according to their local state
         let index = 0;
@@ -130,7 +111,6 @@ class Game extends Component {
             />
         )
     }
-
 }
 
 export default Game;
