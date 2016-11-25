@@ -11,12 +11,11 @@ class GridUnit extends Component {
         context.beginPath();
         context.rect(xpos, ypos, gridSize, gridSize);
         context.fillStyle = fillColour;
-        context.strokeStyle = "#000";
-        context.lineWidth = "0.1";
+        context.strokeStyle = '#000';
+        context.lineWidth = '0.1';
         context.fill();
         context.stroke();
     }
-
 }
 
 export default GridUnit;

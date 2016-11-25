@@ -10,15 +10,26 @@ class Game extends Component {
     constructor(props) {
         super(props);
 
-        // set initial state todo: partition
+        // set initial state
         this.state = {
             context: null,
-            maxWidth: 640,
-            maxHeight: 480,
-            gridSize: 20,
             mapData: [],
             keys: {
                 up: false
+            },
+            engine: {
+                maxWidth: 640,
+                maxHeight: 480
+            },
+            grid: {
+                gridSize: 10,
+                gridOffsetX: 350,
+                gridOffsetY: 305
+            },
+            player: {
+                playerXpos: 0,
+                playerYpos: 0,
+                playerRotation: 0
             }
         };
     }
@@ -63,12 +74,12 @@ class Game extends Component {
     }
 
     clearCanvas() {
-        this.state.context.clearRect(0, 0, this.state.maxWidth, this.state.maxHeight);
+        this.state.context.clearRect(0, 0, this.state.engine.maxWidth, this.state.engine.maxHeight);
     }
 
     drawGrid() {
-        let xpos = 0;
-        let ypos = 0;
+        let xpos = this.state.grid.gridOffsetX;
+        let ypos = this.state.grid.gridOffsetY;
 
         this.state.mapData[0].map((row) => {
             row.map((key) => {
@@ -76,19 +87,19 @@ class Game extends Component {
                     xpos: xpos,
                     ypos: ypos,
                     context: this.state.context,
-                    fillColour: (key == 1 ? "#666" : "#fff"),
-                    gridSize: this.state.gridSize
+                    fillColour: (key == 1 ? '#666' : '#fff'),
+                    gridSize: this.state.grid.gridSize
                 });
                 this.createObject(square, 'squares');
-                xpos += this.state.gridSize;
+                xpos += this.state.grid.gridSize;
             });
-            ypos += this.state.gridSize;
-            xpos = 0;
+            ypos += this.state.grid.gridSize;
+            xpos = this.state.grid.gridOffsetX;
         })
    }
 
     createObject(item, itemList){
-        // puts instantiated obj in given array
+        // pushes instantiated obj to given array
         this[itemList].push(item);
     }
 
@@ -105,9 +116,9 @@ class Game extends Component {
 
     render() {
         return (
-            <canvas id="canvas"
-                width={ this.state.maxWidth }
-                height={ this.state.maxHeight }
+            <canvas id='canvas'
+                width={this.state.engine.maxWidth}
+                height={this.state.engine.maxHeight}
             />
         )
     }
