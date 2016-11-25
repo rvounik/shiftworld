@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { render }  from 'react-dom';
-import Square from './Square'
+import GridUnit from './GridUnit'
 
 const KEY = {
     UP:  38
@@ -8,14 +8,14 @@ const KEY = {
 
 class Game extends Component {
     constructor(props) {
-        super(props); // see http://stackoverflow.com/questions/30668326/what-is-the-difference-between-using-constructor-vs-getinitialstate-in-react-r
+        super(props);
 
         // set initial state todo: partition
         this.state = {
             context: null,
             maxWidth: 640,
             maxHeight: 480,
-            gridSize: 50,
+            gridSize: 20,
             mapData: [],
             keys: {
                 up: false
@@ -24,7 +24,7 @@ class Game extends Component {
     }
 
     componentDidMount() {
-        // todo: needs work to handle keyup events
+        // register key event listeners todo: needs work to handle keyup events
         window.addEventListener('keyup', this.handleKeys.bind(this, this.state.keys.up!= true));
 
         // add mapData that was received as props in constructor to the state
@@ -53,40 +53,74 @@ class Game extends Component {
     update() {
         // for enemy movement you would add this to the update method:
         // this.setState({ enemyX: 231 });
-        // note that player movement is handled by key events, not update() !
-        const context = this.state.context;
+
         this.clearCanvas();
-        this.draw2DMap();
-        requestAnimationFrame(() => { this.update() }); // keep calling update function
+
+        this.squares = []; // wipe previous list of squares
+        this.drawGrid(); // build new set of squares
+        this.renderObjects(this.squares); // renders squares
+
+        requestAnimationFrame(() => {this.update()}); // keeps calling itself
     }
 
     clearCanvas() {
         this.state.context.clearRect(0, 0, this.state.maxWidth, this.state.maxHeight);
     }
 
-    draw2DMap() {
-        const context = this.state.context;
+    drawGrid() {
         let xpos = 0;
         let ypos = 0;
 
-        //todo: fix that [0]
-            this.state.mapData[0].map((row) => {
-                row.map((key) => {
-                    // todo: extract to component.. somehow
-                    let fillColour = (key == 1 ? "#666" : "#fff");
-                    context.beginPath();
-                    context.rect(xpos, ypos, this.state.gridSize, this.state.gridSize);
-                    context.fillStyle = fillColour;
-                    context.strokeStyle = "#000";
-                    context.lineWidth = "0.1";
-                    context.fill();
-                    context.stroke();
-                    xpos += this.state.gridSize;
+        this.state.mapData[0].map((row) => {
+            row.map((key) => {
+                let square = new GridUnit({
+                    xpos: xpos,
+                    ypos: ypos,
+                    context: this.state.context,
+                    fillColour: (key == 1 ? "#666" : "#fff"),
+                    gridSize: this.state.gridSize
                 });
-                ypos += this.state.gridSize;
-                xpos = 0;
-            })
+                this.createObject(square, 'squares');
+                xpos += this.state.gridSize;
+            });
+            ypos += this.state.gridSize;
+            xpos = 0;
+        })
    }
+
+    createObject(item, itemList){
+        // puts instantiated obj in given array
+        this[itemList].push(item);
+    }
+
+    /* this version of updateObjects has ability to delete items, too.
+      this is unused in our case since canvas is wiped / recreated every frame
+    updateObjects(items, group){
+        // deletes or renders
+        // wait what. why do I need delete when I redraw the canvas every frame?
+        let index = 0;
+        for (let item of items) {
+            if (item.delete) {
+                // we dont need delete currently since we
+                //this[group].splice(index, 1);
+            } else {
+                items[index].render(this.state);
+            }
+            index++;
+        }
+    }
+    */
+
+    renderObjects(items){
+        // loops through given items renders them according to their local state
+        let index = 0;
+
+        items.map(item => {
+            items[index].render(this.state);
+
+            index++;
+        });
+    }
 
     render() {
         return (
