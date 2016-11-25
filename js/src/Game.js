@@ -3,14 +3,18 @@ import { render }  from 'react-dom';
 import GridUnit from './GridUnit'
 
 const KEY = {
-    UP:  38
+    UP:  38,
+    DOWN: 40,
+    LEFT: 37,
+    RIGHT: 39
 };
+
+const PI = 3.14159265359;
 
 class Game extends Component {
     constructor(props) {
         super(props);
 
-        // set initial state
         this.state = {
             context: null,
             mapData: [],
@@ -19,7 +23,8 @@ class Game extends Component {
             },
             engine: {
                 maxWidth: 640,
-                maxHeight: 480
+                maxHeight: 480,
+                fieldOfVision: 90
             },
             grid: {
                 gridSize: 10,
@@ -35,8 +40,9 @@ class Game extends Component {
     }
 
     componentDidMount() {
-        // register key event listeners todo: needs work to handle keyup events
-        window.addEventListener('keyup', this.handleKeys.bind(this, this.state.keys.up!= true));
+        // register key event listeners
+        window.addEventListener('keyup', this.handleKeys.bind(this, false));
+        window.addEventListener('keydown', this.handleKeys.bind(this, true));
 
         // add mapData that was received as props in constructor to the state
         let newState = Object.assign({}, this.state);
@@ -57,20 +63,28 @@ class Game extends Component {
     handleKeys(value, e){
         let keys = this.state.keys; // copy state
         if(e.keyCode === KEY.UP) keys.up = value; // mutate state
+        if(e.keyCode === KEY.DOWN) keys.down = value;
+        if(e.keyCode === KEY.LEFT) keys.left = value;
+        if(e.keyCode === KEY.RIGHT) keys.right = value;
         this.setState({keys : keys}); // set state
+
+        e.preventDefault();
     }
 
     update() {
         // for enemy movement you would, for example, add this to the update method:
         // this.setState({ enemyX: 231 });
 
+        // clears canvas for redrawing todo: if nothing changed, dont redraw!
         this.clearCanvas();
 
+        // render grid
         this.squares = []; // wipe previous list of squares
         this.drawGrid(); // build new set of squares
         this.renderObjects(this.squares); // renders squares
 
-        requestAnimationFrame(() => {this.update()}); // keeps calling itself
+        // recursively call update method again
+        requestAnimationFrame(() => {this.update()});
     }
 
     clearCanvas() {
@@ -104,7 +118,7 @@ class Game extends Component {
     }
 
     renderObjects(items){
-        // loops through given items renders them according to their local state
+        // loops through given items and renders them according to their local state
         let index = 0;
 
         items.map(item => {
