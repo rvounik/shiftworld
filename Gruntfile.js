@@ -30,6 +30,18 @@ module.exports = function(grunt) {
                 files: {
                     'web/js/vendor/polyfill.js': ['node_modules/babel-polyfill/dist/polyfill.min.js']
                 }
+            },
+            assets: {
+                "files": [
+                    {
+                        "src": [
+                            "assets/image/*"
+                        ],
+                        "dest": "web/assets/image",
+                        "flatten": true,
+                        "expand": true
+                    }
+                ]
             }
         },
         clean: {
@@ -38,7 +50,8 @@ module.exports = function(grunt) {
             ],
             "web": [
                 "web/js",
-                "web/css"
+                "web/css",
+                "web/assets"
             ]
         },
         uglify: {
@@ -85,6 +98,7 @@ module.exports = function(grunt) {
                     'compass:build',
                     "copy:js",
                     'copy:vendor',
+                    'copy:assets',
                     'autoprefixer:build'
                 ]
             }
@@ -110,6 +124,7 @@ module.exports = function(grunt) {
             'compass:build',
             'copy:js',
             'copy:vendor',
+            'copy:assets',
             'autoprefixer:build',
             'watch:project'
         ]
@@ -125,6 +140,7 @@ module.exports = function(grunt) {
             'uglify:js',
             'copy:js',
             'copy:vendor',
+            'copy:assets',
             'autoprefixer:build'
         ]
     );
