@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { render }  from 'react-dom';
-import GridUnit from './GridUnit'
+import Grid from './Grid'
 
 const KEY = {
     UP:  38,
@@ -37,13 +37,11 @@ class Game extends Component {
                 playerRotation: 0
             }
         };
+
+        this.gridUnits = [];
     }
 
     componentDidMount() {
-        // register key event listeners
-        window.addEventListener('keyup', this.handleKeys.bind(this, false));
-        window.addEventListener('keydown', this.handleKeys.bind(this, true));
-
         // add mapData that was received as props in constructor to the state
         let newState = Object.assign({}, this.state);
         newState['mapData'].push(this.props.mapData);
@@ -52,8 +50,8 @@ class Game extends Component {
         // now that component is mounted the context of canvas element can be determined
         this.setState({ context: document.getElementById('canvas').getContext('2d') });
 
-        // initialise the update() method that is used for all actions not initiated by the player
-        requestAnimationFrame(() => {this.update()});
+        // init game
+        this.init();
     }
 
     componentDidUpdate() {
@@ -71,61 +69,45 @@ class Game extends Component {
         e.preventDefault();
     }
 
+    init() {
+        // register key event listeners
+        window.addEventListener('keyup', this.handleKeys.bind(this, false));
+        window.addEventListener('keydown', this.handleKeys.bind(this, true));
+
+        //this.drawTitleScreen(); etc
+        this.drawGrid();
+    }
+
+    drawGrid() {
+        this.gridUnits = [];
+
+        this.grid = new Grid({
+            xpos: this.state.grid.gridOffsetX,
+            ypos: this.state.grid.gridOffsetY,
+            gridOffsetX: this.state.grid.gridOffsetX,
+            gridSize: this.state.grid.gridSize,
+            context: this.state.context,
+            mapData: this.state.mapData,
+            gridUnits: this.gridUnits
+        });
+    }
+
     update() {
         // for enemy movement you would, for example, add this to the update method:
         // this.setState({ enemyX: 231 });
 
-        // clears canvas for redrawing todo: if nothing changed, dont redraw!
+        // clears canvas for redrawing
         this.clearCanvas();
 
-        // render grid
-        this.squares = []; // wipe previous list of squares
-        this.drawGrid(); // build new set of squares
-        this.renderObjects(this.squares); // renders squares
+        // recreate the grid (wish this could be persistent somehow)
+       this.drawGrid();
 
-        // recursively call update method again
-        requestAnimationFrame(() => {this.update()});
+        // render grid
+        this.grid.render(this.state);
     }
 
     clearCanvas() {
         this.state.context.clearRect(0, 0, this.state.engine.maxWidth, this.state.engine.maxHeight);
-    }
-
-    drawGrid() {
-        let xpos = this.state.grid.gridOffsetX;
-        let ypos = this.state.grid.gridOffsetY;
-
-        this.state.mapData[0].map((row) => {
-            row.map((key) => {
-                let square = new GridUnit({
-                    xpos: xpos,
-                    ypos: ypos,
-                    context: this.state.context,
-                    fillColour: (key == 1 ? '#666' : '#fff'),
-                    gridSize: this.state.grid.gridSize
-                });
-                this.createObject(square, 'squares');
-                xpos += this.state.grid.gridSize;
-            });
-            ypos += this.state.grid.gridSize;
-            xpos = this.state.grid.gridOffsetX;
-        })
-   }
-
-    createObject(item, itemList){
-        // pushes instantiated obj to given array
-        this[itemList].push(item);
-    }
-
-    renderObjects(items){
-        // loops through given items and renders them according to their local state
-        let index = 0;
-
-        items.map(item => {
-            items[index].render(this.state);
-
-            index++;
-        });
     }
 
     render() {
