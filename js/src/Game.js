@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { render }  from 'react-dom';
+import update from 'immutability-helper';
 import Grid from './Grid'
 
 const KEY = {
@@ -39,13 +40,28 @@ class Game extends Component {
                 playerYpos: 0,
                 playerRotation: 0
             },
+            gameStates: {
+                loading: true,
+                init: false,
+                title: false,
+                start: false,
+                gameOver: false,
+                end: false
+            },
             titleScreen: true,
             gameStarted: false,
             gameInitialised: false
         };
 
         this.gridUnits = []; // do not put this in state or race condition imminent
-        this.oldKeyState = this.state.keys;
+        this.oldKeyState = this.state.keys; // todo: I dont like this
+    }
+
+    // helper function to iterate over object and return them as key,value pairs
+    mapObject(object, callback) {
+        return Object.keys(object).map(function (key) {
+            return callback(key, object[key]);
+        });
     }
 
     componentDidMount() {
@@ -92,7 +108,7 @@ class Game extends Component {
         // todo: move to component
         var imageObj = new Image();
         let context = this.state.context;
-        let changeGameState = this.changeGameState;
+        let startButtonClicked = this.startButtonClicked;
 
         imageObj.onload = function() {
             //make sure image has loaded before rendering button to prevent image appearing after game started
@@ -109,24 +125,76 @@ class Game extends Component {
             context.fillText("START GAME", buttonX + 15, buttonY + 30);
             context.fill();
 
-            // dont bother with coordinates, just make whole screen clickable
-            window.addEventListener('click', () => changeGameState('gameStarted'), false);
-        };
+            window.addEventListener('click', startButtonClicked.bind(this));
+        }.bind(this);
 
         imageObj.src = 'assets/image/title-shiftworld.jpg';
     }
 
-    // todo: I dont like this method
+    startButtonClicked(event) {
+        // todo: needs heavy work:
+        // cant pass on any parameters (like gamestate and button coords)
+        // dont like the bind(this) crap in the eventlistener
+        if (
+            event.clientX >= 250
+            && event.clientX <= 370
+            && event.clientY >= 300
+            && event.clientY <= 350
+        ) {
+            this.changeGameState('gameStarted');
+        }
+    }
+
     changeGameState(newState) {
+        // todo: this does not work
+
         switch(newState) {
             case 'gameStarted':
-                console.log('game started by user');
-                this.setState({gameStarted : true});
-                //this.setState({titleScreen : false});
+                //game started by user
+
+                console.log('old state is:');
+                this.mapObject(this.state.gameStates, function (key, value) {
+                    console.log(key, value);
+                });
+
+                console.log('---------------------------------');
+
+                update(this.state, {
+                    gameStates: {
+                        start: { $set: true }
+                    }
+                });
+
+                console.log('new state is:');
+                this.mapObject(this.state.gameStates, function (key, value) {
+                    console.log(key, value);
+                });
                 break;
             default:
                 console.log('unrecognised game state encountered');
         }
+    }
+
+    // todo: I dont like this.. yet
+    projectionNeedsUpdate() {
+        // check if the state of the keypress has changed
+        //console.log(this.oldKeyState === this.state.keys);
+        if(this.oldKeyState != this.state.keys) {
+            //console.log('keys changed, updating scene');
+            this.oldKeyState = this.state.keys;
+            return true;
+        }
+
+        // check if titleScreen needs to disappear
+        if(this.state.titleScreen && this.state.gameStarted) {
+            //console.log('game state changed, updating scene');
+            this.setState({titleScreen : false});
+            return true;
+        }
+
+        // check if enemy position needs to be changed (timer based)
+
+        return false;
     }
 
     drawGrid() {
@@ -157,28 +225,6 @@ class Game extends Component {
         }
 
         requestAnimationFrame(() => {this.update()}); // keep calling itself thus checking for req update
-    }
-
-    // todo: I dont like this method
-    projectionNeedsUpdate() {
-        // check if the state of the keypress has changed
-        console.log(this.oldKeyState === this.state.keys);
-        if(this.oldKeyState != this.state.keys) {
-            console.log('keys changed, updating scene');
-            this.oldKeyState = this.state.keys;
-            return true;
-        }
-
-        // check if titleScreen needs to disappear
-        if(this.state.titleScreen && this.state.gameStarted) {
-            console.log('game state changed, updating scene');
-            this.setState({titleScreen : false});
-            return true;
-        }
-
-        // check if enemy position needs to be changed (timer based)
-
-        return false;
     }
 
     clearCanvas() {
