@@ -43,14 +43,11 @@ class Game extends Component {
             gameStates: {
                 loading: true,
                 init: false,
-                title: false,
+                title: true,
                 start: false,
                 gameOver: false,
                 end: false
-            },
-            titleScreen: true,
-            gameStarted: false,
-            gameInitialised: false
+            }
         };
 
         this.gridUnits = []; // do not put this in state or race condition imminent
@@ -132,7 +129,7 @@ class Game extends Component {
     }
 
     startButtonClicked(event) {
-        // todo: needs heavy work:
+        // todo: can I init this inside the listener instead?
         // cant pass on any parameters (like gamestate and button coords)
         // dont like the bind(this) crap in the eventlistener
         if (
@@ -146,30 +143,18 @@ class Game extends Component {
     }
 
     changeGameState(newState) {
-        // todo: this does not work
 
         switch(newState) {
             case 'gameStarted':
                 //game started by user
-
-                console.log('old state is:');
-                this.mapObject(this.state.gameStates, function (key, value) {
-                    console.log(key, value);
-                });
-
-                console.log('---------------------------------');
-
-                update(this.state, {
+                let newState = update(this.state, {
                     gameStates: {
                         start: { $set: true }
                     }
                 });
-
-                console.log('new state is:');
-                this.mapObject(this.state.gameStates, function (key, value) {
-                    console.log(key, value);
-                });
+                this.setState(newState);
                 break;
+
             default:
                 console.log('unrecognised game state encountered');
         }
@@ -186,9 +171,13 @@ class Game extends Component {
         }
 
         // check if titleScreen needs to disappear
-        if(this.state.titleScreen && this.state.gameStarted) {
-            //console.log('game state changed, updating scene');
-            this.setState({titleScreen : false});
+        if(this.state.gameStates.title && this.state.gameStates.start) {
+            let newState = update(this.state, {
+                gameStates: {
+                    title: { $set: false }
+                }
+            });
+            this.setState(newState);
             return true;
         }
 
