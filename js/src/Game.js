@@ -41,17 +41,17 @@ class Game extends Component {
                 playerRotation: 0
             },
             gameStates: {
-                loading: true,
                 init: false,
-                title: true,
+                title: false,
                 start: false,
-                gameOver: false,
+                map: false,
                 end: false
             }
         };
 
         this.gridUnits = []; // do not put this in state or race condition imminent
         this.oldKeyState = this.state.keys; // todo: I dont like this
+        this.debug = true;
     }
 
     // helper function to iterate over object and return them as key,value pairs
@@ -59,6 +59,19 @@ class Game extends Component {
         return Object.keys(object).map(function (key) {
             return callback(key, object[key]);
         });
+    }
+
+    // helper function to update a key, value pair inside state.gameStates
+    updateGameState(key, value) {
+        let newState = update(this.state, {
+            gameStates: {
+                [key]: { $set: value }
+            }
+        });
+
+        this.setState(newState);
+
+        if (this.debug){console.log('changed gameState for '+key+' to '+value)}
     }
 
     componentDidMount() {
@@ -73,21 +86,22 @@ class Game extends Component {
 
     componentDidUpdate() {
         // since you cant call init() when the context has not been saved to the state, we need a check
-        if (this.state.context != null && this.state.gameInitialised != true) {
-            this.init();
-            this.setState({ gameInitialised: true });
+        if (this.state.context != null && this.state.gameStates.init != true) {
+
+            if(this.debug) {console.log('init game (for the first time)') }
+
+            // register key event listeners
+            window.addEventListener('keyup', this.handleKeys.bind(this, false));
+            window.addEventListener('keydown', this.handleKeys.bind(this, true));
+
+            // to complete init, set its gameState to true
+            this.updateGameState('init', true);
+
+            // draw title screen
+            this.drawTitleScreen();
         }
 
         this.update(); // triggered when state changes outside of update() method, for example, a keypress or timer event
-    }
-
-    init() {
-        // register key event listeners
-        window.addEventListener('keyup', this.handleKeys.bind(this, false));
-        window.addEventListener('keydown', this.handleKeys.bind(this, true));
-
-        // draw title screen
-        this.drawTitleScreen();
     }
 
     handleKeys(value, e){
@@ -105,7 +119,6 @@ class Game extends Component {
         // todo: move to component
         var imageObj = new Image();
         let context = this.state.context;
-        let startButtonClicked = this.startButtonClicked;
 
         imageObj.onload = function() {
             //make sure image has loaded before rendering button to prevent image appearing after game started
@@ -122,66 +135,39 @@ class Game extends Component {
             context.fillText("START GAME", buttonX + 15, buttonY + 30);
             context.fill();
 
-            window.addEventListener('click', startButtonClicked.bind(this));
+            this.updateGameState('title', true);
+
+            // todo: refactor so its always active but its coords can change
+            // todo: (no need to remove the listener, you can active it already init and its reusable!)
+            // todo: it might even solve that ugly binding crap..
+            window.addEventListener('click', function(event){
+                if (
+                    event.clientX >= 250
+                    && event.clientX <= 370
+                    && event.clientY >= 300
+                    && event.clientY <= 350
+                ) {
+                    this.updateGameState('start', true);
+                }
+            }.bind(this));
         }.bind(this);
 
         imageObj.src = 'assets/image/title-shiftworld.jpg';
     }
 
-    startButtonClicked(event) {
-        // todo: can I init this inside the listener instead?
-        // cant pass on any parameters (like gamestate and button coords)
-        // dont like the bind(this) crap in the eventlistener
-        if (
-            event.clientX >= 250
-            && event.clientX <= 370
-            && event.clientY >= 300
-            && event.clientY <= 350
-        ) {
-            this.changeGameState('gameStarted');
-        }
-    }
-
-    changeGameState(newState) {
-
-        switch(newState) {
-            case 'gameStarted':
-                //game started by user
-                let newState = update(this.state, {
-                    gameStates: {
-                        start: { $set: true }
-                    }
-                });
-                this.setState(newState);
-                break;
-
-            default:
-                console.log('unrecognised game state encountered');
-        }
-    }
-
-    // todo: I dont like this.. yet
     projectionNeedsUpdate() {
         // check if the state of the keypress has changed
-        //console.log(this.oldKeyState === this.state.keys);
         if(this.oldKeyState != this.state.keys) {
-            //console.log('keys changed, updating scene');
+            if (this.debug) {console.log('keys changed, updating scene')};
             this.oldKeyState = this.state.keys;
             return true;
         }
 
         // check if titleScreen needs to disappear
         if(this.state.gameStates.title && this.state.gameStates.start) {
-            let newState = update(this.state, {
-                gameStates: {
-                    title: { $set: false }
-                }
-            });
-            this.setState(newState);
+            this.updateGameState('title', false);
             return true;
         }
-
-        // check if enemy position needs to be changed (timer based)
 
         return false;
     }
@@ -189,6 +175,7 @@ class Game extends Component {
     drawGrid() {
         this.gridUnits = [];
 
+        // todo: use spread to send off grid props only
         this.grid = new Grid({
             xpos: this.state.grid.gridOffsetX,
             ypos: this.state.grid.gridOffsetY,
@@ -203,14 +190,14 @@ class Game extends Component {
     update() {
         // to improve performance, call helper function to see if update is needed
         if (this.projectionNeedsUpdate()) {
-            console.log('updating');
+            if (this.debug){console.log('something triggered a projection update, doing so..')};
 
             // clears canvas for redrawing
             this.clearCanvas();
 
             // recreate the grid
             this.drawGrid(); // todo: figure out how to persist the gridUnits array and simply re-render
-            this.grid.render(this.state); // render grid (inc grid units)
+            this.grid.render(this.state); // render grid (inc grid units) todo: if you stick with this, only send off the grid specific stuff from the state
         }
 
         requestAnimationFrame(() => {this.update()}); // keep calling itself thus checking for req update
@@ -220,7 +207,7 @@ class Game extends Component {
         const context= this.state.context;
         context.fillStyle = "#000";
         context.fillRect( 0, 0, this.state.engine.maxWidth, this.state.engine.maxHeight );
-        // this.state.context.clearRect(0, 0, this.state.engine.maxWidth, this.state.engine.maxHeight);
+        // alternative: this.state.context.clearRect(0, 0, this.state.engine.maxWidth, this.state.engine.maxHeight);
     }
 
     render() {
