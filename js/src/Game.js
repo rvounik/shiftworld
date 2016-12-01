@@ -50,8 +50,18 @@ class Game extends Component {
         };
 
         this.gridUnits = []; // do not put this in state or race condition imminent
-        this.oldKeyState = this.state.keys; // todo: I dont like this
+        this.oldKeyState = {};
+        this.bounds = {};
+
         this.debug = true;
+    }
+
+    // helper function that clears the canvas
+    clearCanvas() {
+        const context= this.state.context;
+        context.fillStyle = "#000";
+        context.fillRect( 0, 0, this.state.engine.maxWidth, this.state.engine.maxHeight );
+        // alternative: this.state.context.clearRect(0, 0, this.state.engine.maxWidth, this.state.engine.maxHeight);
     }
 
     // helper function to iterate over object and return them as key,value pairs
@@ -74,6 +84,20 @@ class Game extends Component {
         if (this.debug){console.log('changed gameState for '+key+' to '+value)}
     }
 
+    // helper function that checks whether user clicked within an active boundary range
+    clickWithinBoundsHandler(event){
+        if (
+            event.clientX >= this.bounds.xMin
+            && event.clientX <= this.bounds.xMax
+            && event.clientY >= this.bounds.yMin
+            && event.clientY <= this.bounds.yMax
+        ) {
+            // executes the action that was registered for these boundaries, then resets them
+            this.bounds.action();
+            this.bounds = {};
+        }
+    }
+
     componentDidMount() {
         // add mapData that was received as props in constructor to the state
         let newState = Object.assign({}, this.state);
@@ -93,6 +117,9 @@ class Game extends Component {
             // register key event listeners
             window.addEventListener('keyup', this.handleKeys.bind(this, false));
             window.addEventListener('keydown', this.handleKeys.bind(this, true));
+
+            // register reusable global window event listener for click events
+            window.addEventListener('click', (event) => {this.clickWithinBoundsHandler(event)});
 
             // to complete init, set its gameState to true
             this.updateGameState('init', true);
@@ -137,45 +164,28 @@ class Game extends Component {
 
             this.updateGameState('title', true);
 
-            // todo: refactor so its always active but its coords can change
-            // todo: (no need to remove the listener, you can active it already init and its reusable!)
-            // todo: it might even solve that ugly binding crap..
-            window.addEventListener('click', function(event){
-                if (
-                    event.clientX >= 250
-                    && event.clientX <= 370
-                    && event.clientY >= 300
-                    && event.clientY <= 350
-                ) {
-                    this.updateGameState('start', true);
-                }
-            }.bind(this));
+            // register button boundaries and action to take when clicked
+            this.bounds = {
+                xMin: 250,
+                xMax: 370,
+                yMin: 300,
+                yMax: 350,
+                action: function() {
+                    this.updateGameState('start', true)
+                }.bind(this)
+            };
+
         }.bind(this);
 
         imageObj.src = 'assets/image/title-shiftworld.jpg';
     }
 
-    projectionNeedsUpdate() {
-        // check if the state of the keypress has changed
-        if(this.oldKeyState != this.state.keys) {
-            if (this.debug) {console.log('keys changed, updating scene')};
-            this.oldKeyState = this.state.keys;
-            return true;
-        }
-
-        // check if titleScreen needs to disappear
-        if(this.state.gameStates.title && this.state.gameStates.start) {
-            this.updateGameState('title', false);
-            return true;
-        }
-
-        return false;
-    }
-
     drawGrid() {
+        if (this.debug){console.log('drawing grid')}
+
         this.gridUnits = [];
 
-        // todo: use spread to send off grid props only
+        // todo: use spread or sth to send off grid props only
         this.grid = new Grid({
             xpos: this.state.grid.gridOffsetX,
             ypos: this.state.grid.gridOffsetY,
@@ -188,26 +198,23 @@ class Game extends Component {
     }
 
     update() {
-        // to improve performance, call helper function to see if update is needed
-        if (this.projectionNeedsUpdate()) {
-            if (this.debug){console.log('something triggered a projection update, doing so..')};
-
-            // clears canvas for redrawing
+        // check if titleScreen needs to disappear
+        if(this.state.gameStates.title && this.state.gameStates.start) {
+            this.updateGameState('title', false);
             this.clearCanvas();
-
-            // recreate the grid
-            this.drawGrid(); // todo: figure out how to persist the gridUnits array and simply re-render
-            this.grid.render(this.state); // render grid (inc grid units) todo: if you stick with this, only send off the grid specific stuff from the state
         }
 
-        requestAnimationFrame(() => {this.update()}); // keep calling itself thus checking for req update
-    }
+        // check if grid needs to be drawn
+        if(!this.state.gameStates.title && this.state.gameStates.start) {
+            // but only if drawn first time OR player pressed a key todo: this is not working now
+            if(this.oldKeyState != this.state.keys) {
+                this.drawGrid(); // todo: figure out if it HAS to reconstruct every time
+                this.grid.render(this.state);
+                this.oldKeyState = this.state.keys;
+            }
+        }
 
-    clearCanvas() {
-        const context= this.state.context;
-        context.fillStyle = "#000";
-        context.fillRect( 0, 0, this.state.engine.maxWidth, this.state.engine.maxHeight );
-        // alternative: this.state.context.clearRect(0, 0, this.state.engine.maxWidth, this.state.engine.maxHeight);
+        requestAnimationFrame(() => {this.update()}); // keep updating
     }
 
     render() {

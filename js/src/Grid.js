@@ -18,7 +18,7 @@ class Grid extends Component {
     }
 
     render() {
-        console.log('creating grid');
+        if (this.debug){console.log('creating grid')};
         
         let { xpos, ypos } = this.props;
         const { context, gridSize, mapData, gridOffsetX, gridUnits } = this.props;
