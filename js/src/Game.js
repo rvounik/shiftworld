@@ -3,19 +3,19 @@ import { render }  from 'react-dom';
 import update from 'immutability-helper';
 import Grid from './Grid'
 
+// constants
 const KEY = {
     UP:  38,
     DOWN: 40,
     LEFT: 37,
     RIGHT: 39
-};
-
-const PI = 3.14159265359;
+}, PI = 3.14159265359;
 
 class Game extends Component {
     constructor(props) {
         super(props);
 
+        // global state
         this.state = {
             context: null,
             mapData: [],
@@ -41,7 +41,7 @@ class Game extends Component {
                 playerRotation: 0
             },
             gameStates: {
-                init: false,
+                initialised: false,
                 title: false,
                 start: false,
                 map: false,
@@ -49,12 +49,16 @@ class Game extends Component {
             }
         };
 
+        // local state
         this.gridUnits = []; // do not put this in state or race condition imminent
         this.oldKeyState = {};
         this.bounds = {};
 
+        // debugger
         this.debug = true;
     }
+
+    // todo: move helper methods to helper component
 
     // helper function that clears the canvas
     clearCanvas() {
@@ -109,10 +113,10 @@ class Game extends Component {
     }
 
     componentDidUpdate() {
-        // since you cant call init() when the context has not been saved to the state, we need a check
-        if (this.state.context != null && this.state.gameStates.init != true) {
+        // since you cant call initialised() when the context has not been saved to the state, we need a check
+        if (this.state.context != null && this.state.gameStates.initialised != true) {
 
-            if(this.debug) {console.log('init game (for the first time)') }
+            if(this.debug) {console.log('initialised game (for the first time)') }
 
             // register key event listeners
             window.addEventListener('keyup', this.handleKeys.bind(this, false));
@@ -121,8 +125,8 @@ class Game extends Component {
             // register reusable global window event listener for click events
             window.addEventListener('click', (event) => {this.clickWithinBoundsHandler(event)});
 
-            // to complete init, set its gameState to true
-            this.updateGameState('init', true);
+            // to complete initialised, set its gameState to true
+            this.updateGameState('initialised', true);
 
             // draw title screen
             this.drawTitleScreen();
@@ -155,16 +159,16 @@ class Game extends Component {
             const buttonX = 250;
             const buttonY = 300;
             context.beginPath();
-            context.fillStyle="red";
+            context.fillStyle = 'limegreen';
             context.fillRect(buttonX, buttonY, 120, 50);
-            context.font = "12px serif";
-            context.fillStyle= '#ffffff';
-            context.fillText("START GAME", buttonX + 15, buttonY + 30);
+            context.font = '12px arial';
+            context.fillStyle= 'white';
+            context.fillText("START GAME", buttonX + 20, buttonY + 30);
             context.fill();
 
             this.updateGameState('title', true);
 
-            // register button boundaries and action to take when clicked
+            // register button boundaries and click action
             this.bounds = {
                 xMin: 250,
                 xMax: 370,
@@ -181,6 +185,7 @@ class Game extends Component {
     }
 
     drawGrid() {
+        // todo: move to (grid?) component
         if (this.debug){console.log('drawing grid')}
 
         this.gridUnits = [];
@@ -198,23 +203,32 @@ class Game extends Component {
     }
 
     update() {
+
         // check if titleScreen needs to disappear
         if(this.state.gameStates.title && this.state.gameStates.start) {
             this.updateGameState('title', false);
             this.clearCanvas();
+            this.drawGrid(); // todo: figure out if it HAS to reconstruct every time
+            this.grid.render(this.state);
         }
 
-        // check if grid needs to be drawn
+        // check if projection/player/enemies need to be (re)drawn
         if(!this.state.gameStates.title && this.state.gameStates.start) {
-            // but only if drawn first time OR player pressed a key todo: this is not working now
-            if(this.oldKeyState != this.state.keys) {
-                this.drawGrid(); // todo: figure out if it HAS to reconstruct every time
-                this.grid.render(this.state);
-                this.oldKeyState = this.state.keys;
+
+            if(this.debug) {console.log('this should say FALSE when pressing buttons: '+(this.state.keys==this.oldKeyState))}
+
+            // check for keychange. if present, redraw player (lines) and projection (3d view)
+            // todo: NOT WORKING (probably passing by reference instead of value)
+            if(this.oldKeyState !== this.state.keys) {
+                console.log('registered key change, re-rendering player + projection');
+                this.tempState = this.state.keys;
+                this.oldKeyState = this.tempState;
             }
+
+            // checkifenemiesneedtomove(); // call to some method that does things with enemy movement
         }
 
-        requestAnimationFrame(() => {this.update()}); // keep updating
+        requestAnimationFrame(() => {this.update()}); // keep alive
     }
 
     render() {
@@ -222,7 +236,7 @@ class Game extends Component {
             <canvas id='canvas'
                 width={this.state.engine.maxWidth}
                 height={this.state.engine.maxHeight}
-            >canvas not supported on your device</canvas>
+            >Oh no! Canvas is not supported on your device :(</canvas>
         )
     }
 }
