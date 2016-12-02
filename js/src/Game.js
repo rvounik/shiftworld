@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { render }  from 'react-dom';
 import update from 'immutability-helper';
-import Grid from './Grid'
+import Grid from './MiniMap/Grid'
 
 // constants
 const KEY = {
@@ -55,6 +55,11 @@ class Game extends Component {
 
         // debugger
         this.debug = true;
+
+        // fps
+        this.frameCount = 0;
+        this.timer = new Date().getTime();
+
     }
 
     // todo: move helper methods to helper component
@@ -115,7 +120,7 @@ class Game extends Component {
         // since you cant call initialised() when the context has not been saved to the state, we need a check
         if (this.state.context != null && this.state.gameStates.initialised != true) {
 
-            if(this.debug) {console.log('initialised game (for the first time)')}
+            if(this.debug) {console.log('initialised game')}
 
             // register key event listeners
             window.addEventListener('keyup', this.handleKeys.bind(this, false));
@@ -186,13 +191,16 @@ class Game extends Component {
     drawMiniMap() {
         this.clearCanvas();
 
-        this.grid = new Grid({
-            grid: this.state.grid,
-            context: this.state.context,
-            mapData: this.state.mapData,
-            gridUnits: []
-        });
-        this.grid.render(); // now it runs the render method, including building of the 476 gridUnits
+        if(!this.grid){
+            this.grid = new Grid({
+                grid: this.state.grid,
+                context: this.state.context,
+                mapData: this.state.mapData
+            });
+        }
+
+        // actually render the instantiated grid object
+        this.grid.render();
     }
 
     update() {
@@ -205,7 +213,6 @@ class Game extends Component {
 
         // check if projection/player/enemies need to be (re)drawn
         if(!this.state.gameStates.title && this.state.gameStates.start) {
-
             if(this.debug) {console.log('this should say FALSE when pressing buttons: '+(this.state.keys==this.oldKeyState))}
 
             // check for keychange. if present, redraw player (lines) and projection (3d view)
@@ -214,12 +221,24 @@ class Game extends Component {
                 console.log('registered key change, re-rendering player + projection');
                 this.tempState = this.state.keys;
                 this.oldKeyState = this.tempState;
+
+                this.drawMiniMap(); // redraw map (this can be safely done multiple times)
             }
 
             // checkifenemiesneedtomove(); // call to some method that does things with enemy movement
         }
 
-        requestAnimationFrame(() => {this.update()}); // keep alive
+        // fps counter
+        this.frameCount++;
+        if(this.timer+1000 < new Date().getTime()) {
+            this.timer = new Date().getTime();
+            //if (this.debug){console.log('fps:'+this.frameCount)}
+            this.frameCount = 0;
+        }
+
+        // keep alive
+        requestAnimationFrame(() => {this.update()});
+
     }
 
     render() {
