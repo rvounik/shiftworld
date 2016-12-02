@@ -26,6 +26,7 @@ class Game extends Component {
                 right: false
             },
             engine: {
+                fps: 25,
                 maxWidth: 640,
                 maxHeight: 480,
                 fieldOfVision: 90
@@ -50,7 +51,6 @@ class Game extends Component {
         };
 
         // local state (do not put these in the state!)
-        this.oldKeyState = {};
         this.bounds = {};
 
         // debugger
@@ -59,7 +59,6 @@ class Game extends Component {
         // fps
         this.frameCount = 0;
         this.timer = new Date().getTime();
-
     }
 
     // todo: move helper methods to helper component
@@ -94,6 +93,7 @@ class Game extends Component {
 
     // helper function that checks whether user clicked within an active boundary range
     clickWithinBoundsHandler(event){
+        // todo: take scrolltop into account
         if (
             event.clientX >= this.bounds.xMin
             && event.clientX <= this.bounds.xMax
@@ -192,6 +192,7 @@ class Game extends Component {
         this.clearCanvas();
 
         if(!this.grid){
+            console.log('you should see me only once');
             this.grid = new Grid({
                 grid: this.state.grid,
                 context: this.state.context,
@@ -205,40 +206,45 @@ class Game extends Component {
 
     update() {
 
-        // check if titleScreen needs to disappear
-        if(this.state.gameStates.title && this.state.gameStates.start) {
-            this.updateGameState('title', false);
-            this.drawMiniMap();
-        }
+        // by restricting how many times things are checked we are ensuring
+        // the cpu never runs out of time, resulting in much better performance
+        if(this.timer+(1000/this.state.engine.fps) < new Date().getTime()) {
 
-        // check if projection/player/enemies need to be (re)drawn
-        if(!this.state.gameStates.title && this.state.gameStates.start) {
-            if(this.debug) {console.log('this should say FALSE when pressing buttons: '+(this.state.keys==this.oldKeyState))}
-
-            // check for keychange. if present, redraw player (lines) and projection (3d view)
-            // todo: NOT WORKING (probably passing by reference instead of value)
-            if(this.oldKeyState !== this.state.keys) {
-                console.log('registered key change, re-rendering player + projection');
-                this.tempState = this.state.keys;
-                this.oldKeyState = this.tempState;
-
-                this.drawMiniMap(); // redraw map (this can be safely done multiple times)
+            // check if titleScreen needs to disappear
+            if(this.state.gameStates.title && this.state.gameStates.start) {
+                this.updateGameState('title', false);
+                this.drawMiniMap();
             }
 
-            // checkifenemiesneedtomove(); // call to some method that does things with enemy movement
-        }
+            // check if projection/player/enemies need to be (re)drawn
+            if(!this.state.gameStates.title && this.state.gameStates.start) {
+                // lets just assume we always need to render something
+                if(this.state.keys.left) {
+                    console.log('rotating left');
+                    this.drawMiniMap(); // redraw map. performance penalty. remove when projection finished
+                }
+                if(this.state.keys.right) {
+                    console.log('rotating right');
+                    this.drawMiniMap(); // redraw map. performance penalty. remove when projection finished
+                }
+                if(this.state.keys.down) {
+                    console.log('going backward');
+                    this.drawMiniMap(); // redraw map. performance penalty. remove when projection finished
+                }
+                if(this.state.keys.up) {
+                    console.log('going forward');
+                    this.drawMiniMap(); // redraw map. performance penalty. remove when projection finished
+                }
 
-        // fps counter
-        this.frameCount++;
-        if(this.timer+1000 < new Date().getTime()) {
+                // checkifenemiesneedtomove(); // call to some method that does things with enemy movement
+            }
+
             this.timer = new Date().getTime();
-            //if (this.debug){console.log('fps:'+this.frameCount)}
             this.frameCount = 0;
         }
 
         // keep alive
         requestAnimationFrame(() => {this.update()});
-
     }
 
     render() {
