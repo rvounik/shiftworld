@@ -1,6 +1,8 @@
-import React, { Component } from 'react';
+import React, { PropTypes, Component } from 'react';
 import { render }  from 'react-dom';
 import GridUnit from './GridUnit'
+
+// todo: put in own folder with gridunit
 
 class Grid extends Component {
     constructor(props) {
@@ -11,6 +13,7 @@ class Grid extends Component {
         let index = 0;
 
         items.map(item => {
+            // creating grid: rendering a single gridunit to canvas (you should see this 476 times)
             items[index].render(this.state);
 
             index++;
@@ -18,14 +21,17 @@ class Grid extends Component {
     }
 
     render() {
-        if (this.debug){console.log('creating grid')};
-        
-        let { xpos, ypos } = this.props;
-        const { context, gridSize, mapData, gridOffsetX, gridUnits } = this.props;
+        // todo: extract to separate method
+        const {gridSize, gridOffsetX} = this.props.grid;
+        const {context, mapData} = this.props;
+
+        let xpos = this.props.grid.gridOffsetX;
+        let ypos = this.props.grid.gridOffsetY;
+        let gridUnits = this.props.gridUnits;
 
         mapData[0].map((row) => {
-
             row.map((key) => {
+                // todo: hand over props likewise to Grid instantiation in Game.js
                 let square = new GridUnit({
                     xpos: xpos,
                     ypos: ypos,
@@ -40,9 +46,10 @@ class Grid extends Component {
             xpos = gridOffsetX;
         });
 
-        // render grid units
+        // render the array of grid units to the canvas object
         this.renderObjects(gridUnits);
     }
+
 }
 
 export default Grid;

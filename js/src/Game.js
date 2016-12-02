@@ -12,8 +12,8 @@ const KEY = {
 }, PI = 3.14159265359;
 
 class Game extends Component {
-    constructor(props) {
-        super(props);
+    constructor() {
+        super();
 
         // global state
         this.state = {
@@ -49,8 +49,7 @@ class Game extends Component {
             }
         };
 
-        // local state
-        this.gridUnits = []; // do not put this in state or race condition imminent
+        // local state (do not put these in the state!)
         this.oldKeyState = {};
         this.bounds = {};
 
@@ -116,7 +115,7 @@ class Game extends Component {
         // since you cant call initialised() when the context has not been saved to the state, we need a check
         if (this.state.context != null && this.state.gameStates.initialised != true) {
 
-            if(this.debug) {console.log('initialised game (for the first time)') }
+            if(this.debug) {console.log('initialised game (for the first time)')}
 
             // register key event listeners
             window.addEventListener('keyup', this.handleKeys.bind(this, false));
@@ -184,22 +183,16 @@ class Game extends Component {
         imageObj.src = 'assets/image/title-shiftworld.jpg';
     }
 
-    drawGrid() {
-        // todo: move to (grid?) component
-        if (this.debug){console.log('drawing grid')}
+    drawMiniMap() {
+        this.clearCanvas();
 
-        this.gridUnits = [];
-
-        // todo: use spread or sth to send off grid props only
         this.grid = new Grid({
-            xpos: this.state.grid.gridOffsetX,
-            ypos: this.state.grid.gridOffsetY,
-            gridOffsetX: this.state.grid.gridOffsetX,
-            gridSize: this.state.grid.gridSize,
+            grid: this.state.grid,
             context: this.state.context,
             mapData: this.state.mapData,
-            gridUnits: this.gridUnits
+            gridUnits: []
         });
+        this.grid.render(); // now it runs the render method, including building of the 476 gridUnits
     }
 
     update() {
@@ -207,9 +200,7 @@ class Game extends Component {
         // check if titleScreen needs to disappear
         if(this.state.gameStates.title && this.state.gameStates.start) {
             this.updateGameState('title', false);
-            this.clearCanvas();
-            this.drawGrid(); // todo: figure out if it HAS to reconstruct every time
-            this.grid.render(this.state);
+            this.drawMiniMap();
         }
 
         // check if projection/player/enemies need to be (re)drawn

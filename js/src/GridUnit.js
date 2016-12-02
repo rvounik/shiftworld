@@ -8,6 +8,7 @@ class GridUnit extends Component {
 
     render() {
         const { context, xpos, ypos, fillColour, gridSize } = this.props;
+
         context.beginPath();
         context.rect(xpos, ypos, gridSize, gridSize);
         context.fillStyle = fillColour;
