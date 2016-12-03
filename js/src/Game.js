@@ -12,8 +12,8 @@ const KEY = {
 }, PI = 3.14159265359;
 
 class Game extends Component {
-    constructor() {
-        super();
+    constructor(props) {
+        super(props);
 
         // global state
         this.state = {
@@ -61,8 +61,46 @@ class Game extends Component {
         this.debug = true;
 
         // fps
-        this.frameCount = 0;
         this.timer = new Date().getTime();
+    }
+
+    componentDidMount() {
+        // add mapData that was received as props in constructor to the state
+        let newState = Object.assign({}, this.state);
+        newState['mapData'].push(this.props.mapData);
+        this.setState(newState);
+
+        // now that component is mounted the context of canvas element can be determined
+        this.setState({ context: document.getElementById('canvas').getContext('2d') });
+    }
+
+    componentDidUpdate() {
+        // hide title screen if game has started
+        if(this.state.gameStates.title && this.state.gameStates.start) {
+            this.updateGameState('title', false);
+            this.drawMiniMap();
+        }
+
+        // initialise game if not already done so
+        if (this.state.context != null && this.state.gameStates.initialised != true) {
+
+            if(this.debug) {console.log('initialised game')}
+
+            // register key event listeners
+            window.addEventListener('keyup', this.handleKeys.bind(this, false));
+            window.addEventListener('keydown', this.handleKeys.bind(this, true));
+
+            // register reusable global window event listener for click events
+            window.addEventListener('click', (event) => {this.clickWithinBoundsHandler(event)});
+
+            // to complete initialised, set its gameState to true
+            this.updateGameState('initialised', true);
+
+            // draw title screen
+            this.drawTitleScreen();
+        }
+
+        this.update(); // triggered when state changes outside of update() method
     }
 
     // todo: move helper methods to helper component
@@ -110,39 +148,15 @@ class Game extends Component {
         }
     }
 
-    componentDidMount() {
-        // add mapData that was received as props in constructor to the state
-        let newState = Object.assign({}, this.state);
-        newState['mapData'].push(this.props.mapData);
-        this.setState(newState);
-
-        // now that component is mounted the context of canvas element can be determined
-        this.setState({ context: document.getElementById('canvas').getContext('2d') });
+    // helper function that returns new x,y for given x,y,rotation and length
+    getTranslationPointsForAngle(x, y, a, length) {
+        let radians = a * (PI / 180);
+        let x2 = x + length * Math.cos(radians);
+        let y2 = y + length * Math.sin(radians);
+        return [x2, y2];
     }
 
-    componentDidUpdate() {
-        // since you cant call initialised() when the context has not been saved to the state, we need a check
-        if (this.state.context != null && this.state.gameStates.initialised != true) {
-
-            if(this.debug) {console.log('initialised game')}
-
-            // register key event listeners
-            window.addEventListener('keyup', this.handleKeys.bind(this, false));
-            window.addEventListener('keydown', this.handleKeys.bind(this, true));
-
-            // register reusable global window event listener for click events
-            window.addEventListener('click', (event) => {this.clickWithinBoundsHandler(event)});
-
-            // to complete initialised, set its gameState to true
-            this.updateGameState('initialised', true);
-
-            // draw title screen
-            this.drawTitleScreen();
-        }
-
-        this.update(); // triggered when state changes outside of update() method, for example, a keypress or timer event
-    }
-
+    // update state according to keys being (sup)pressed
     handleKeys(value, e){
         let keys = this.state.keys; // copy state
         if(e.keyCode === KEY.UP) keys.up = value; // mutate state
@@ -225,42 +239,33 @@ class Game extends Component {
         context.stroke();
 
         // build visible rays for minimap todo: turn into while
-        const rotStart = rot - this.state.engine.fieldOfVision/2;
+        const rotStart = rot - this.state.engine.fieldOfVision / 2;
         const rotSlice = this.state.engine.fieldOfVision / this.state.engine.projectionWidth;
 
-        for(let i=0;i<this.state.engine.projectionWidth;i++){
+        for(let i = 0;i< this.state.engine.projectionWidth; i++){
             let x = this.state.player.playerXpos+this.state.grid.gridOffsetX;
             let y = this.state.player.playerYpos+this.state.grid.gridOffsetY;
-            let newX = this.getTranslationPointsForAngle(x,y,rotStart + rotSlice * i, this.state.engine.lineLength)[0];
-            let newY = this.getTranslationPointsForAngle(x,y,rotStart + rotSlice * i, this.state.engine.lineLength)[1];
+            let newX = this.getTranslationPointsForAngle(x, y,rotStart + rotSlice * i, this.state.engine.lineLength)[0];
+            let newY = this.getTranslationPointsForAngle(x, y,rotStart + rotSlice * i, this.state.engine.lineLength)[1];
 
             context.beginPath();
-            context.strokeStyle = 'rgba(255,0,0,0.1)';
+            context.strokeStyle = 'rgba(255, 0, 0, 0.1)';
             context.lineWidth = '1';
-            context.moveTo(x,y);
+            context.moveTo(x, y);
             context.lineTo(newX, newY);
             context.stroke();
         }
     }
 
-    getTranslationPointsForAngle(x, y, a, length) {
-        let radians = a * (PI / 180);
-        let x2 = x + length * Math.cos(radians);
-        let y2 = y + length * Math.sin(radians);
-        return [x2, y2];
+    drawProjection() {
+        console.log('ooooh look I am drawing a projection');
     }
 
     update() {
 
         // by restricting how many times things are checked we are ensuring
         // the cpu never runs out of time, resulting in much better performance
-        if(this.timer+(1000/this.state.engine.fps) < new Date().getTime()) {
-
-            // check if titleScreen needs to disappear
-            if(this.state.gameStates.title && this.state.gameStates.start) {
-                this.updateGameState('title', false);
-                this.drawMiniMap();
-            }
+        if(this.timer + (1000 / this.state.engine.fps) < new Date().getTime()) {
 
             // check if projection/player/enemies need to be (re)drawn
             if(!this.state.gameStates.title && this.state.gameStates.start) {
@@ -273,27 +278,30 @@ class Game extends Component {
                 if(this.state.keys.left) {
                     this.state.player.playerRotation-=this.state.engine.rotationSpeed;
                     this.drawMiniMap(); // redraw map. performance penalty. remove when projection finished
+                    this.drawProjection(); // redraw projection
                 }
                 if(this.state.keys.right) {
                     this.state.player.playerRotation+=this.state.engine.rotationSpeed;
                     this.drawMiniMap(); // redraw map. performance penalty. remove when projection finished
+                    this.drawProjection(); // redraw projection
                 }
                 if(this.state.keys.down) {
                     this.state.player.playerXpos = this.getTranslationPointsForAngle(playerXpos, playerYpos, playerRotation, 0-playerSpeed)[0];
                     this.state.player.playerYpos = this.getTranslationPointsForAngle(playerXpos, playerYpos, playerRotation, 0-playerSpeed)[1];
                     this.drawMiniMap(); // redraw map. performance penalty. remove when projection finished
+                    this.drawProjection(); // redraw projection
                 }
                 if(this.state.keys.up) {
                     this.state.player.playerXpos = this.getTranslationPointsForAngle(playerXpos, playerYpos, playerRotation, playerSpeed)[0];
                     this.state.player.playerYpos = this.getTranslationPointsForAngle(playerXpos, playerYpos, playerRotation, playerSpeed)[1];
                     this.drawMiniMap(); // redraw map. performance penalty. remove when projection finished
+                    this.drawProjection(); // redraw projection
                 }
 
                 // checkifenemiesneedtomove(); // call to some method that does things with enemy movement
             }
 
             this.timer = new Date().getTime();
-            this.frameCount = 0;
         }
 
         // keep alive
