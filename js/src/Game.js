@@ -33,7 +33,7 @@ class Game extends Component {
                 fieldOfVision: 90,
                 rotationSpeed: 5,
                 lineLength: 50,
-                playerSpeed: 0.5
+                playerSpeed: 2.5
             },
             grid: {
                 gridSize: 10,
@@ -41,8 +41,8 @@ class Game extends Component {
                 gridOffsetY: 305
             },
             player: {
-                playerXpos: 250,
-                playerYpos: 150,
+                playerXpos: 255,
+                playerYpos: 155,
                 playerRotation: 240
             },
             gameStates: {
@@ -83,9 +83,6 @@ class Game extends Component {
 
         // initialise game if not already done so
         if (this.state.context != null && this.state.gameStates.initialised != true) {
-
-            if(this.debug) {console.log('initialised game')}
-
             // register key event listeners
             window.addEventListener('keyup', this.handleKeys.bind(this, false));
             window.addEventListener('keydown', this.handleKeys.bind(this, true));
@@ -148,7 +145,7 @@ class Game extends Component {
         }
     }
 
-    // helper function that returns new x,y for given x,y,rotation and length
+    // helper function that returns new x, y for given x, y, rotation and length
     getTranslationPointsForAngle(x, y, a, length) {
         let radians = a * (PI / 180);
         let x2 = x + length * Math.cos(radians);
@@ -220,8 +217,7 @@ class Game extends Component {
         // actually render the instantiated grid object
         this.grid.render();
 
-
-        // build 2d projection for minimap todo: extract to separate method / component
+        // build 2d projection for minimap todo: move to component
         const context = this.state.context;
 
         let rot = this.state.player.playerRotation;
@@ -238,10 +234,11 @@ class Game extends Component {
         context.lineTo(newX, newY);
         context.stroke();
 
-        // build visible rays for minimap todo: turn into while
+        // build visible rays for minimap
         const rotStart = rot - this.state.engine.fieldOfVision / 2;
         const rotSlice = this.state.engine.fieldOfVision / this.state.engine.projectionWidth;
 
+        // todo: turn into while
         for(let i = 0;i< this.state.engine.projectionWidth; i++){
             let x = this.state.player.playerXpos+this.state.grid.gridOffsetX;
             let y = this.state.player.playerYpos+this.state.grid.gridOffsetY;
@@ -258,16 +255,47 @@ class Game extends Component {
     }
 
     drawProjection() {
-        console.log('ooooh look I am drawing a projection');
+        for(let i = 0;i< this.state.engine.projectionWidth; i++) {
+            let x = this.state.player.playerXpos;
+            let y = this.state.player.playerYpos;
+            let gridSize = this.state.grid.gridSize;
+            let map = this.state.mapData[0];
+
+            // figure out our current position in the array
+            let tilex = parseInt(x / gridSize);
+            let tiley = parseInt(y / gridSize);
+
+            //console.log(map[tiley][tilex]);
+
+// loop (or while)
+
+            // shift to the nearest edge
+            
+
+            // determine which tile is the next to be traversed
+
+            // if array ends, return 1
+
+            // determine its value
+
+            // if its value is not 1, calculate linelength so far, then continue the loop
+
+// loop ends
+
+            // if 1 / array ends, the current linelength is the final linelength
+
+            // draw a rect, taking into account the linelength (the higher, the smaller)
+
+            // to prevent crashes immediately set i to the end value for now
+            i = this.state.engine.projectionWidth;
+        }
     }
 
     update() {
-
-        // by restricting how many times things are checked we are ensuring
-        // the cpu never runs out of time, resulting in much better performance
+        // huge performance gain: restrict the number of checks per second
         if(this.timer + (1000 / this.state.engine.fps) < new Date().getTime()) {
 
-            // check if projection/player/enemies need to be (re)drawn
+            // do all run-time operations and checks
             if(!this.state.gameStates.title && this.state.gameStates.start) {
                 let playerXpos = this.state.player.playerXpos;
                 let playerYpos = this.state.player.playerYpos;
@@ -282,20 +310,20 @@ class Game extends Component {
                 }
                 if(this.state.keys.right) {
                     this.state.player.playerRotation+=this.state.engine.rotationSpeed;
-                    this.drawMiniMap(); // redraw map. performance penalty. remove when projection finished
-                    this.drawProjection(); // redraw projection
+                    this.drawMiniMap();
+                    this.drawProjection();
                 }
                 if(this.state.keys.down) {
                     this.state.player.playerXpos = this.getTranslationPointsForAngle(playerXpos, playerYpos, playerRotation, 0-playerSpeed)[0];
                     this.state.player.playerYpos = this.getTranslationPointsForAngle(playerXpos, playerYpos, playerRotation, 0-playerSpeed)[1];
-                    this.drawMiniMap(); // redraw map. performance penalty. remove when projection finished
-                    this.drawProjection(); // redraw projection
+                    this.drawMiniMap();
+                    this.drawProjection();
                 }
                 if(this.state.keys.up) {
                     this.state.player.playerXpos = this.getTranslationPointsForAngle(playerXpos, playerYpos, playerRotation, playerSpeed)[0];
                     this.state.player.playerYpos = this.getTranslationPointsForAngle(playerXpos, playerYpos, playerRotation, playerSpeed)[1];
-                    this.drawMiniMap(); // redraw map. performance penalty. remove when projection finished
-                    this.drawProjection(); // redraw projection
+                    this.drawMiniMap();
+                    this.drawProjection();
                 }
 
                 // checkifenemiesneedtomove(); // call to some method that does things with enemy movement
