@@ -31,9 +31,9 @@ class Game extends Component {
                 maxHeight: 480,
                 projectionWidth: 160,
                 fieldOfVision: 90,
-                rotationSpeed: 10,
+                rotationSpeed: 5,
                 lineLength: 50,
-                playerSpeed: 5
+                playerSpeed: 0.5
             },
             grid: {
                 gridSize: 10,
@@ -224,7 +224,7 @@ class Game extends Component {
         context.lineTo(newX, newY);
         context.stroke();
 
-        // lets write the loop that generates the slices.. again todo: turn into while
+        // build visible rays for minimap todo: turn into while
         const rotStart = rot - this.state.engine.fieldOfVision/2;
         const rotSlice = this.state.engine.fieldOfVision / this.state.engine.projectionWidth;
 
@@ -241,8 +241,6 @@ class Game extends Component {
             context.lineTo(newX, newY);
             context.stroke();
         }
-
-
     }
 
     getTranslationPointsForAngle(x, y, a, length) {
@@ -266,6 +264,11 @@ class Game extends Component {
 
             // check if projection/player/enemies need to be (re)drawn
             if(!this.state.gameStates.title && this.state.gameStates.start) {
+                let playerXpos = this.state.player.playerXpos;
+                let playerYpos = this.state.player.playerYpos;
+                let playerRotation = this.state.player.playerRotation;
+                let playerSpeed = this.state.engine.playerSpeed;
+
                 // lets just assume we always need to render something
                 if(this.state.keys.left) {
                     this.state.player.playerRotation-=this.state.engine.rotationSpeed;
@@ -276,37 +279,13 @@ class Game extends Component {
                     this.drawMiniMap(); // redraw map. performance penalty. remove when projection finished
                 }
                 if(this.state.keys.down) {
-                    this.state.player.playerXpos =
-                        this.getTranslationPointsForAngle(
-                            this.state.player.playerXpos,
-                            this.state.player.playerYpos,
-                            this.state.player.playerRotation,
-                            0-this.state.engine.playerSpeed
-                        )[0];
-                    this.state.player.playerYpos =
-                        this.getTranslationPointsForAngle(
-                            this.state.player.playerXpos,
-                            this.state.player.playerYpos,
-                            this.state.player.playerRotation,
-                            0-this.state.engine.playerSpeed
-                        )[1];
+                    this.state.player.playerXpos = this.getTranslationPointsForAngle(playerXpos, playerYpos, playerRotation, 0-playerSpeed)[0];
+                    this.state.player.playerYpos = this.getTranslationPointsForAngle(playerXpos, playerYpos, playerRotation, 0-playerSpeed)[1];
                     this.drawMiniMap(); // redraw map. performance penalty. remove when projection finished
                 }
                 if(this.state.keys.up) {
-                    this.state.player.playerXpos =
-                        this.getTranslationPointsForAngle(
-                            this.state.player.playerXpos,
-                            this.state.player.playerYpos,
-                            this.state.player.playerRotation,
-                            this.state.engine.playerSpeed
-                        )[0];
-                    this.state.player.playerYpos =
-                        this.getTranslationPointsForAngle(
-                            this.state.player.playerXpos,
-                            this.state.player.playerYpos,
-                            this.state.player.playerRotation,
-                            this.state.engine.playerSpeed
-                        )[1];
+                    this.state.player.playerXpos = this.getTranslationPointsForAngle(playerXpos, playerYpos, playerRotation, playerSpeed)[0];
+                    this.state.player.playerYpos = this.getTranslationPointsForAngle(playerXpos, playerYpos, playerRotation, playerSpeed)[1];
                     this.drawMiniMap(); // redraw map. performance penalty. remove when projection finished
                 }
 
