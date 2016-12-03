@@ -29,7 +29,11 @@ class Game extends Component {
                 fps: 25,
                 maxWidth: 640,
                 maxHeight: 480,
-                fieldOfVision: 90
+                projectionWidth: 160,
+                fieldOfVision: 90,
+                rotationSpeed: 10,
+                lineLength: 50,
+                playerSpeed: 5
             },
             grid: {
                 gridSize: 10,
@@ -37,9 +41,9 @@ class Game extends Component {
                 gridOffsetY: 305
             },
             player: {
-                playerXpos: 0,
-                playerYpos: 0,
-                playerRotation: 0
+                playerXpos: 250,
+                playerYpos: 150,
+                playerRotation: 240
             },
             gameStates: {
                 initialised: false,
@@ -192,7 +196,6 @@ class Game extends Component {
         this.clearCanvas();
 
         if(!this.grid){
-            console.log('you should see me only once');
             this.grid = new Grid({
                 grid: this.state.grid,
                 context: this.state.context,
@@ -202,6 +205,51 @@ class Game extends Component {
 
         // actually render the instantiated grid object
         this.grid.render();
+
+
+        // build 2d projection for minimap todo: extract to separate method / component
+        const context = this.state.context;
+
+        let rot = this.state.player.playerRotation;
+        let x = this.state.player.playerXpos + this.state.grid.gridOffsetX;
+        let y = this.state.player.playerYpos + this.state.grid.gridOffsetY;
+        let newX = this.getTranslationPointsForAngle(x, y, rot, this.state.engine.lineLength)[0];
+        let newY = this.getTranslationPointsForAngle(x, y, rot, this.state.engine.lineLength)[1];
+
+        // we need to draw the line somewhere (no pun intended)
+        context.beginPath();
+        context.strokeStyle = 'red';
+        context.lineWidth = '1';
+        context.moveTo(x,y);
+        context.lineTo(newX, newY);
+        context.stroke();
+
+        // lets write the loop that generates the slices.. again todo: turn into while
+        const rotStart = rot - this.state.engine.fieldOfVision/2;
+        const rotSlice = this.state.engine.fieldOfVision / this.state.engine.projectionWidth;
+
+        for(let i=0;i<this.state.engine.projectionWidth;i++){
+            let x = this.state.player.playerXpos+this.state.grid.gridOffsetX;
+            let y = this.state.player.playerYpos+this.state.grid.gridOffsetY;
+            let newX = this.getTranslationPointsForAngle(x,y,rotStart + rotSlice * i, this.state.engine.lineLength)[0];
+            let newY = this.getTranslationPointsForAngle(x,y,rotStart + rotSlice * i, this.state.engine.lineLength)[1];
+
+            context.beginPath();
+            context.strokeStyle = 'rgba(255,0,0,0.1)';
+            context.lineWidth = '1';
+            context.moveTo(x,y);
+            context.lineTo(newX, newY);
+            context.stroke();
+        }
+
+
+    }
+
+    getTranslationPointsForAngle(x, y, a, length) {
+        let radians = a * (PI / 180);
+        let x2 = x + length * Math.cos(radians);
+        let y2 = y + length * Math.sin(radians);
+        return [x2, y2];
     }
 
     update() {
@@ -220,19 +268,45 @@ class Game extends Component {
             if(!this.state.gameStates.title && this.state.gameStates.start) {
                 // lets just assume we always need to render something
                 if(this.state.keys.left) {
-                    console.log('rotating left');
+                    this.state.player.playerRotation-=this.state.engine.rotationSpeed;
                     this.drawMiniMap(); // redraw map. performance penalty. remove when projection finished
                 }
                 if(this.state.keys.right) {
-                    console.log('rotating right');
+                    this.state.player.playerRotation+=this.state.engine.rotationSpeed;
                     this.drawMiniMap(); // redraw map. performance penalty. remove when projection finished
                 }
                 if(this.state.keys.down) {
-                    console.log('going backward');
+                    this.state.player.playerXpos =
+                        this.getTranslationPointsForAngle(
+                            this.state.player.playerXpos,
+                            this.state.player.playerYpos,
+                            this.state.player.playerRotation,
+                            0-this.state.engine.playerSpeed
+                        )[0];
+                    this.state.player.playerYpos =
+                        this.getTranslationPointsForAngle(
+                            this.state.player.playerXpos,
+                            this.state.player.playerYpos,
+                            this.state.player.playerRotation,
+                            0-this.state.engine.playerSpeed
+                        )[1];
                     this.drawMiniMap(); // redraw map. performance penalty. remove when projection finished
                 }
                 if(this.state.keys.up) {
-                    console.log('going forward');
+                    this.state.player.playerXpos =
+                        this.getTranslationPointsForAngle(
+                            this.state.player.playerXpos,
+                            this.state.player.playerYpos,
+                            this.state.player.playerRotation,
+                            this.state.engine.playerSpeed
+                        )[0];
+                    this.state.player.playerYpos =
+                        this.getTranslationPointsForAngle(
+                            this.state.player.playerXpos,
+                            this.state.player.playerYpos,
+                            this.state.player.playerRotation,
+                            this.state.engine.playerSpeed
+                        )[1];
                     this.drawMiniMap(); // redraw map. performance penalty. remove when projection finished
                 }
 
