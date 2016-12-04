@@ -252,15 +252,22 @@ class Game extends Component {
             context.lineTo(newX, newY);
             context.stroke();
         }
+
+        this.drawProjection() // debug only!
     }
 
     drawProjection() {
+        const context = this.state.context;
+        const gridSize = this.state.grid.gridSize;
+        const map = this.state.mapData[0];
+        const fov = this.state.engine.fieldOfVision;
+
         for(let i = 0;i< this.state.engine.projectionWidth; i++) {
             let x = this.state.player.playerXpos;
             let y = this.state.player.playerYpos;
-            let gridSize = this.state.grid.gridSize;
-            let map = this.state.mapData[0];
-            let angle = this.state.player.playerRotation;
+            let angle = this.state.player.playerRotation - (fov / 2);
+            angle += i * (fov / this.state.engine.projectionWidth);
+            if(angle > 360){angle -= 360}
 
             // figure out our current position in the array
             let tilex = parseInt(x / gridSize);
@@ -269,34 +276,33 @@ class Game extends Component {
             if(angle < 180 || angle > 270){console.log('warning: not covered by this scenario yet')}
 
             // first get the modulus for current x and gridsize:
-
             let xModulus = x % gridSize;
             // console.log('modulus of '+x+' with gridSize of '+gridSize+' is '+xModulus);
-            console.log('so I am now at tile '+tilex+','+tiley+' and I expect my next tile would be...');
 
-
-            // its one of those. really.
+            // now set some vars so we can use our old code again
             let tempy = y;
             let tempx = x;
             let shift = xModulus;
 
-            let newx = tempx - (shift / (Math.tan( (angle) * (PI / 180) )));
-            let newy = tempy + shift;
+            // calculate the x,y point on the next X or Y axis (not sure which one were testing) our ray will intersect
+            let newy = tempy - (shift * (Math.tan( (180 + angle) * (PI / 180) )));
+            let newx = tempx - shift;
 
-            // todo: draw a dot here to ease debugging. almost there.. DOH je kijkt naar player.rot, niet naar de rot van de eerste slice.
+            // draw a rect where we think the line will cut next (which tile will be touched by the ray?)
+            context.beginPath();
+            context.rect(newx + this.state.grid.gridOffsetX, newy+this.state.grid.gridOffsetY, 1, 1);
+            context.fillStyle = 'black';
+            context.fill();
 
-            tiley = parseInt(newy / gridSize);
-            tilex = parseInt(newx / gridSize);
-
-            console.log(tilex,tiley);
+            // based on this information, return the value from the array for these coordinates
+            let newtilex = parseInt(newx / gridSize);
+            let newtiley = parseInt(newy / gridSize);
+            console.log('now at '+x+','+y+' (tile: '+tilex+','+tiley+'), shift is '+shift+', rotation '+angle+'. line (x) will cut '+parseInt(newx)+','+parseInt(newy)+' (tile: '+newtilex+','+newtiley+') first');
 
             /*let newy = tempy + (shift / (Math.tan( (180 + angle) * (pi / 180) ))); newx = tempx - shift; tiley = parseInt(newy / 25);tilex = parseInt(newx / 25)}
              let newy = tempy + (shift * (Math.tan( (90  + angle) * (pi / 180) ))); newx = tempx + shift; tiley = parseInt(newy / 25);tilex = parseInt(newx / 25)}
              let newy = tempy - (shift / (Math.tan( (180 + angle) * (pi / 180) ))); newx = tempx + shift; tiley = parseInt(newy / 25);tilex = parseInt(newx / 25)}
-             let newy = tempy+ (shift / (Math.tan( (180 + angle) * (pi / 180) ))); newx = tempx - shift; tiley = parseInt(newy / 25);tilex = parseInt(newx / 25)}*/
-
-
-            /*
+             let newy = tempy+ (shift / (Math.tan( (180 + angle) * (pi / 180) ))); newx = tempx - shift; tiley = parseInt(newy / 25);tilex = parseInt(newx / 25)}
 
              let tempx = x;
              let tempy = y;
