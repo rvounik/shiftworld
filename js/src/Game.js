@@ -41,8 +41,8 @@ class Game extends Component {
                 gridOffsetY: 305
             },
             player: {
-                playerXpos: 255,
-                playerYpos: 155,
+                playerXpos: 256,
+                playerYpos: 158,
                 playerRotation: 240
             },
             gameStates: {
@@ -232,7 +232,7 @@ class Game extends Component {
         context.lineWidth = '1';
         context.moveTo(x,y);
         context.lineTo(newX, newY);
-        context.stroke();
+        // context.stroke(); // undo eventually. purely visual candy
 
         // build visible rays for minimap
         const rotStart = rot - this.state.engine.fieldOfVision / 2;
@@ -260,17 +260,64 @@ class Game extends Component {
             let y = this.state.player.playerYpos;
             let gridSize = this.state.grid.gridSize;
             let map = this.state.mapData[0];
+            let angle = this.state.player.playerRotation;
 
             // figure out our current position in the array
             let tilex = parseInt(x / gridSize);
             let tiley = parseInt(y / gridSize);
+            //console.log('player is at '+x+','+y+' which is '+tilex+','+tiley+' in the array which is a '+map[tiley][tilex]);
+            if(angle < 180 || angle > 270){console.log('warning: not covered by this scenario yet')}
 
-            //console.log(map[tiley][tilex]);
+            // first get the modulus for current x and gridsize:
+
+            let xModulus = x % gridSize;
+            // console.log('modulus of '+x+' with gridSize of '+gridSize+' is '+xModulus);
+            console.log('so I am now at tile '+tilex+','+tiley+' and I expect my next tile would be...');
+
+
+            // its one of those. really.
+            let tempy = y;
+            let tempx = x;
+            let shift = xModulus;
+
+            let newx = tempx - (shift / (Math.tan( (angle) * (PI / 180) )));
+            let newy = tempy + shift;
+
+            // todo: draw a dot here to ease debugging. almost there.. DOH je kijkt naar player.rot, niet naar de rot van de eerste slice.
+
+            tiley = parseInt(newy / gridSize);
+            tilex = parseInt(newx / gridSize);
+
+            console.log(tilex,tiley);
+
+            /*let newy = tempy + (shift / (Math.tan( (180 + angle) * (pi / 180) ))); newx = tempx - shift; tiley = parseInt(newy / 25);tilex = parseInt(newx / 25)}
+             let newy = tempy + (shift * (Math.tan( (90  + angle) * (pi / 180) ))); newx = tempx + shift; tiley = parseInt(newy / 25);tilex = parseInt(newx / 25)}
+             let newy = tempy - (shift / (Math.tan( (180 + angle) * (pi / 180) ))); newx = tempx + shift; tiley = parseInt(newy / 25);tilex = parseInt(newx / 25)}
+             let newy = tempy+ (shift / (Math.tan( (180 + angle) * (pi / 180) ))); newx = tempx - shift; tiley = parseInt(newy / 25);tilex = parseInt(newx / 25)}*/
+
+
+            /*
+
+             let tempx = x;
+             let tempy = y;
+
+             let shift = 0;
+
+             if(angle <= 180){shift = tempx - (Math.floor(tempx / 25) * 25); if(shift == 0){shift = 25}}
+             if(angle <= 90) {shift = tempx - (Math.floor(tempx / 25) * 25); if(shift == 0){shift = 25}}
+             if(angle <= 0)  {shift = (Math.ceil(tempx / 25) * 25) - tempx; if(shift == 0){shift = 25}}
+             if(angle <= -90){shift = (Math.ceil(tempx / 25) * 25) - tempx; if(shift == 0){shift = 25}}
+             if(angle <= -180){shift = tempx - (Math.floor(tempx / 25) * 25); if(shift == 0){shift = 25}}
+
+             console.log(shift);
+             */
+
+
 
 // loop (or while)
 
             // shift to the nearest edge
-            
+
 
             // determine which tile is the next to be traversed
 
@@ -305,11 +352,13 @@ class Game extends Component {
                 // lets just assume we always need to render something
                 if(this.state.keys.left) {
                     this.state.player.playerRotation-=this.state.engine.rotationSpeed;
+                    if(this.state.player.playerRotation<0){this.state.player.playerRotation+=360}
                     this.drawMiniMap(); // redraw map. performance penalty. remove when projection finished
                     this.drawProjection(); // redraw projection
                 }
                 if(this.state.keys.right) {
                     this.state.player.playerRotation+=this.state.engine.rotationSpeed;
+                    if(this.state.player.playerRotation>360){this.state.player.playerRotation-=360}
                     this.drawMiniMap();
                     this.drawProjection();
                 }
@@ -339,8 +388,8 @@ class Game extends Component {
     render() {
         return (
             <canvas id='canvas'
-                width={this.state.engine.maxWidth}
-                height={this.state.engine.maxHeight}
+                    width={this.state.engine.maxWidth}
+                    height={this.state.engine.maxHeight}
             >Oh no! Canvas is not supported on your device :(</canvas>
         )
     }
