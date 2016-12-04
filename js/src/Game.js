@@ -33,7 +33,7 @@ class Game extends Component {
                 fieldOfVision: 90,
                 rotationSpeed: 1,
                 lineLength: 50,
-                playerSpeed: 2.5
+                playerSpeed: 1
             },
             grid: {
                 gridSize: 10,
@@ -172,7 +172,7 @@ class Game extends Component {
 
     drawTitleScreen() {
         // todo: move to component
-        var imageObj = new Image();
+        let imageObj = new Image();
         let context = this.state.context;
 
         imageObj.onload = function() {
@@ -266,116 +266,115 @@ class Game extends Component {
         const gridSize = this.state.grid.gridSize;
         const map = this.state.mapData[0];
         const fov = this.state.engine.fieldOfVision;
-        let rectHeight = 0;
+        const debugProjection = false;
+        const resolution = this.state.engine.maxWidth / this.state.engine.projectionWidth;
+        const projectionDistance = (this.state.engine.projectionWidth / 5) / Math.tan((fov / 2) * (PI / 180));
+        const x = this.state.player.playerXpos;
+        const y = this.state.player.playerYpos;
 
         for(let i = 0;i< this.state.engine.projectionWidth; i++) {
-            let x = this.state.player.playerXpos;
-            let y = this.state.player.playerYpos;
+
+            // re-determine angle for current 'ray' and check if valid
             let angle = this.state.player.playerRotation - (fov / 2);
             angle += i * (fov / this.state.engine.projectionWidth);
-
             if(angle > 360){angle -= 360}
             if(angle < 180 || angle > 270){console.log('WARNING: ROTATION NOT COVERED BY THIS SCENARIO YET!')}
 
-            // figure out our current position in the array
+            // set a load of probably useless vars and constants
+            let xModulus = x % gridSize;
+            let yModulus = y % gridSize;
+            let xShift = xModulus;
+            let yShift = yModulus;
             let tilex = parseInt(x / gridSize);
             let tiley = parseInt(y / gridSize);
-            //console.log('player is at '+x+','+y+' which is '+parseInt(x / gridSize)+','+parseInt(y / gridSize)+' in the array which is a '+map[tiley][tilex]);
-
-            // first get the modulus for current x and gridsize:
-            let xModulus = x % gridSize;
-
-            // now set some vars so we can use our old code again todo: major clean up possible and needed
-            let tempy = y;
-            let tempx = x;
-            let newx = tempx;
-            let newy = tempy;
-            let shift = xModulus;
+            let newx = x;
+            let newy = y;
+            let lineLengthForXAxis = 0;
             let lineLengthForYAxis = 0;
             let newtilex = tilex;
             let newtiley = tiley;
 
-            while(shift < x && newy > 0 && map[newtiley][newtilex-1] != 1) {
-                // calculate the x,y point on the Y axis where our 'ray' will intersect next
-                newy = tempy - (shift * (Math.tan((180 + angle) * (PI / 180))));
-                newx = tempx - shift;
-                //console.log('now at ' + x + ',' + y + ' (tile: ' + tilex + ',' + tiley + '), shift is ' + shift + ', rotation ' + angle + '. line will cut ' + parseInt(newx) + ',' + parseInt(newy));
+            // CALCULATE SHORTEST ROUTE TO WALL INTERSECTION FOR Y-AXIS (red)
 
-                // draw a dot at the next intersection point on the y axis
-                /*context.beginPath();
-                context.rect(newx + this.state.grid.gridOffsetX, newy + this.state.grid.gridOffsetY, 2, 2);
-                context.fillStyle = 'red';
-                context.fill();*/
-
-                lineLengthForYAxis = this.getLineLengthBetweenPoints(x, y, newx, newy);
-
-                // check if there is a '1' in the corresponding index of mapData, otherwise increase shift and continue
-                shift += gridSize; // increment the shift until we reach end of array (or later, a '1' in the map index)
-
-                newtilex = parseInt(newx / gridSize);
-                newtiley = parseInt(newy / gridSize);
-            }
-
-            //console.log('Y '+lineLengthForYAxis);
-
-    // REPEAT FOR X AXIS
-
-            /* on the separation between y-axis and x axis. imagine a grid. a grid has an x- and y-axis. the rays for the
-                projection will interset lines on both axes. depending on which of those intersects is shortest, a wall
-                should be drawn. if you want to understand, set i immediately to the last at the end of the loop and enable
-                the creation of the dots. that will greatly help you understand what goes on.
-             */
-
-            // first get the modulus for current y and gridsize:
-            let yModulus = y % gridSize;
-
-            // now set some vars so we can use our old code again
-            tempy = y;
-            tempx = x;
-            newx = tempx;
-            newy = tempy;
-            shift = yModulus;
-            let lineLengthForXAxis = 0;
+            // reset the lookup position for mapData
             newtilex = tilex;
             newtiley = tiley;
 
-            while(shift < y && newx > 0 && map[newtiley-1][newtilex] != 1) {
-                // calculate the x,y point on the X axis where our 'ray' will intersect next
-                newx = tempx - (shift * (Math.tan((90 - angle) * (PI / 180))));
-                newy = tempy - shift;
-                //console.log('now at ' + x + ',' + y + ' (tile: ' + tilex + ',' + tiley + '), shift is ' + shift + ', rotation ' + angle + '. line will cut ' + parseInt(newx) + ',' + parseInt(newy));
+            // keep calculating the next intersection point for the X axis
+            while(xShift < x && newy > 0 && map[newtiley][newtilex-1] != 1) {
+                // determine new x, y intersection points
+                newy = y - (xShift * (Math.tan((180 + angle) * (PI / 180))));
+                newx = x - xShift;
 
-                // draw a dot at the next intersection point on the y axis
-                /*context.beginPath();
-                context.rect(newx + this.state.grid.gridOffsetX, newy + this.state.grid.gridOffsetY, 2, 2);
-                context.fillStyle = 'blue';
-                context.fill();
-*/
-                lineLengthForXAxis = this.getLineLengthBetweenPoints(x, y, newx, newy);
+                // calculate distance between player and current intersection points
+                lineLengthForYAxis = this.getLineLengthBetweenPoints(x, y, newx, newy);
 
-                // check if there is a '1' in the corresponding index of mapData, otherwise increase shift and continue
-                shift += gridSize; // increment the shift until we reach end of array (or later, a '1' in the map index)
+                // increment the shift until scope of array is reached
+                xShift += gridSize;
 
+                // shift the lookup position for mapData
                 newtilex = parseInt(newx / gridSize);
                 newtiley = parseInt(newy / gridSize);
+
+                // draw a marker at the next intersection point on the y axis
+                if(debugProjection) {context.beginPath();context.rect(newx + this.state.grid.gridOffsetX, newy + this.state.grid.gridOffsetY, 2, 2);context.fillStyle = 'red';context.fill()}
             }
 
-            //console.log('X '+lineLengthForXAxis);
+            // CALCULATE SHORTEST ROUTE TO WALL INTERSECTION FOR X-AXIS (blue)
 
-            let shortest = lineLengthForXAxis <= lineLengthForYAxis ? lineLengthForXAxis : lineLengthForYAxis;
+            // reset the lookup position for mapData
+            newtilex = tilex;
+            newtiley = tiley;
 
-            //console.log('hitting a wall at '+shortest+' pixels');
+            // keep calculating the next intersection point for the X axis
+            while(yShift < y && newx > 0 && map[newtiley-1][newtilex] != 1) {
+                // determine new x, y intersection points
+                newx = x - (yShift * (Math.tan((90 - angle) * (PI / 180))));
+                newy = y - yShift;
 
-            rectHeight = 100 - shortest;
+                // calculate distance between player and current intersection points
+                lineLengthForXAxis = this.getLineLengthBetweenPoints(x, y, newx, newy);
 
-            // drawing a rect with height set to 640 - distance to wall
+                // shift the lookup position for mapData
+                newtilex = parseInt(newx / gridSize);
+                newtiley = parseInt(newy / gridSize);
+
+                // increment the shift until scope of array is reached
+                yShift += gridSize;
+
+                // draw a marker at the next intersection point on the x axis
+                if(debugProjection) {context.beginPath();context.rect(newx + this.state.grid.gridOffsetX, newy + this.state.grid.gridOffsetY, 2, 2);context.fillStyle = 'blue';context.fill()}
+            }
+
+            // DRAW WALL SECTION WITH ITS HEIGHT RELATED TO ITS DISTANCE
+
+            // calculate the definitive shortest route to nearest wall
+            let shortestRoute = lineLengthForXAxis <= lineLengthForYAxis ? lineLengthForXAxis : lineLengthForYAxis;
+            if(debugProjection) {console.log('hitting a wall at '+shortestRoute+' pixels')}
+
+            // calculate fish eye correction
+            let angleDifference = (this.state.player.playerRotation) - angle - (fov / 2);
+            let angleDifferenceRadians = angleDifference * (PI / 180); // convert to radians
+            let fishEyeCorrection = 0 - Math.cos(angleDifferenceRadians); // cos of angle difference in radians
+
+            // some magic to apply the fish eye correction on the height of the wall section
+            let sliceHeight = (shortestRoute * fishEyeCorrection);
+            sliceHeight = (100 / sliceHeight) * projectionDistance;
+
+            // draw the wall section
             context.beginPath();
-            context.rect(i*(this.state.engine.maxWidth/this.state.engine.projectionWidth), this.state.engine.projectionWidth+(rectHeight / 2), this.state.engine.maxWidth/this.state.engine.projectionWidth, rectHeight);
-            context.fillStyle = '#ccc';
+            context.rect(
+                i * resolution,
+                sliceHeight / 2,
+                resolution,
+                255 - sliceHeight
+            );
+            let colorval = parseInt(Math.pow(sliceHeight, 2) / 255); // the closer, the brighter
+            context.fillStyle = 'rgba(0, '+colorval+', 0, 1)';
             context.fill();
 
             // to prevent crashes immediately set i to the end value for now
-            //i = this.state.engine.projectionWidth;
+            if(debugProjection) {i = this.state.engine.projectionWidth}
         }
     }
 
