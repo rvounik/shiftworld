@@ -285,7 +285,7 @@ class Game extends Component {
             // first get the modulus for current x and gridsize:
             let xModulus = x % gridSize;
 
-            // now set some vars so we can use our old code again
+            // now set some vars so we can use our old code again todo: major clean up possible and needed
             let tempy = y;
             let tempx = x;
             let newx = tempx;
@@ -302,10 +302,10 @@ class Game extends Component {
                 //console.log('now at ' + x + ',' + y + ' (tile: ' + tilex + ',' + tiley + '), shift is ' + shift + ', rotation ' + angle + '. line will cut ' + parseInt(newx) + ',' + parseInt(newy));
 
                 // draw a dot at the next intersection point on the y axis
-                context.beginPath();
+                /*context.beginPath();
                 context.rect(newx + this.state.grid.gridOffsetX, newy + this.state.grid.gridOffsetY, 2, 2);
                 context.fillStyle = 'red';
-                context.fill();
+                context.fill();*/
 
                 lineLengthForYAxis = this.getLineLengthBetweenPoints(x, y, newx, newy);
 
@@ -319,6 +319,12 @@ class Game extends Component {
             //console.log('Y '+lineLengthForYAxis);
 
     // REPEAT FOR X AXIS
+
+            /* on the separation between y-axis and x axis. imagine a grid. a grid has an x- and y-axis. the rays for the
+                projection will interset lines on both axes. depending on which of those intersects is shortest, a wall
+                should be drawn. if you want to understand, set i immediately to the last at the end of the loop and enable
+                the creation of the dots. that will greatly help you understand what goes on.
+             */
 
             // first get the modulus for current y and gridsize:
             let yModulus = y % gridSize;
@@ -340,11 +346,11 @@ class Game extends Component {
                 //console.log('now at ' + x + ',' + y + ' (tile: ' + tilex + ',' + tiley + '), shift is ' + shift + ', rotation ' + angle + '. line will cut ' + parseInt(newx) + ',' + parseInt(newy));
 
                 // draw a dot at the next intersection point on the y axis
-                context.beginPath();
+                /*context.beginPath();
                 context.rect(newx + this.state.grid.gridOffsetX, newy + this.state.grid.gridOffsetY, 2, 2);
                 context.fillStyle = 'blue';
                 context.fill();
-
+*/
                 lineLengthForXAxis = this.getLineLengthBetweenPoints(x, y, newx, newy);
 
                 // check if there is a '1' in the corresponding index of mapData, otherwise increase shift and continue
