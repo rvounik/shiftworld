@@ -31,7 +31,7 @@ class Game extends Component {
                 maxHeight: 480,
                 projectionWidth: 160,
                 fieldOfVision: 90,
-                rotationSpeed: 5,
+                rotationSpeed: 1,
                 lineLength: 50,
                 playerSpeed: 2.5
             },
@@ -165,6 +165,11 @@ class Game extends Component {
         e.preventDefault();
     }
 
+    // calculates line length between 2 points
+    getLineLengthBetweenPoints (x, y, x0, y0){
+        return Math.sqrt((x -= x0) * x + (y -= y0) * y);
+    };
+
     drawTitleScreen() {
         // todo: move to component
         var imageObj = new Image();
@@ -253,7 +258,7 @@ class Game extends Component {
             context.stroke();
         }
 
-        this.drawProjection() // debug only!
+        this.drawProjection(); // debug only!
     }
 
     drawProjection() {
@@ -261,86 +266,110 @@ class Game extends Component {
         const gridSize = this.state.grid.gridSize;
         const map = this.state.mapData[0];
         const fov = this.state.engine.fieldOfVision;
+        let rectHeight = 0;
 
         for(let i = 0;i< this.state.engine.projectionWidth; i++) {
             let x = this.state.player.playerXpos;
             let y = this.state.player.playerYpos;
             let angle = this.state.player.playerRotation - (fov / 2);
             angle += i * (fov / this.state.engine.projectionWidth);
+
             if(angle > 360){angle -= 360}
+            if(angle < 180 || angle > 270){console.log('WARNING: ROTATION NOT COVERED BY THIS SCENARIO YET!')}
 
             // figure out our current position in the array
             let tilex = parseInt(x / gridSize);
             let tiley = parseInt(y / gridSize);
-            //console.log('player is at '+x+','+y+' which is '+tilex+','+tiley+' in the array which is a '+map[tiley][tilex]);
-            if(angle < 180 || angle > 270){console.log('warning: not covered by this scenario yet')}
+            //console.log('player is at '+x+','+y+' which is '+parseInt(x / gridSize)+','+parseInt(y / gridSize)+' in the array which is a '+map[tiley][tilex]);
 
             // first get the modulus for current x and gridsize:
             let xModulus = x % gridSize;
-            // console.log('modulus of '+x+' with gridSize of '+gridSize+' is '+xModulus);
 
             // now set some vars so we can use our old code again
             let tempy = y;
             let tempx = x;
+            let newx = tempx;
+            let newy = tempy;
             let shift = xModulus;
+            let lineLengthForYAxis = 0;
+            let newtilex = tilex;
+            let newtiley = tiley;
 
-            // calculate the x,y point on the next X or Y axis (not sure which one were testing) our ray will intersect
-            let newy = tempy - (shift * (Math.tan( (180 + angle) * (PI / 180) )));
-            let newx = tempx - shift;
+            while(shift < x && newy > 0 && map[newtiley][newtilex-1] != 1) {
+                // calculate the x,y point on the Y axis where our 'ray' will intersect next
+                newy = tempy - (shift * (Math.tan((180 + angle) * (PI / 180))));
+                newx = tempx - shift;
+                //console.log('now at ' + x + ',' + y + ' (tile: ' + tilex + ',' + tiley + '), shift is ' + shift + ', rotation ' + angle + '. line will cut ' + parseInt(newx) + ',' + parseInt(newy));
 
-            // draw a rect where we think the line will cut next (which tile will be touched by the ray?)
+                // draw a dot at the next intersection point on the y axis
+                context.beginPath();
+                context.rect(newx + this.state.grid.gridOffsetX, newy + this.state.grid.gridOffsetY, 2, 2);
+                context.fillStyle = 'red';
+                context.fill();
+
+                lineLengthForYAxis = this.getLineLengthBetweenPoints(x, y, newx, newy);
+
+                // check if there is a '1' in the corresponding index of mapData, otherwise increase shift and continue
+                shift += gridSize; // increment the shift until we reach end of array (or later, a '1' in the map index)
+
+                newtilex = parseInt(newx / gridSize);
+                newtiley = parseInt(newy / gridSize);
+            }
+
+            //console.log('Y '+lineLengthForYAxis);
+
+    // REPEAT FOR X AXIS
+
+            // first get the modulus for current y and gridsize:
+            let yModulus = y % gridSize;
+
+            // now set some vars so we can use our old code again
+            tempy = y;
+            tempx = x;
+            newx = tempx;
+            newy = tempy;
+            shift = yModulus;
+            let lineLengthForXAxis = 0;
+            newtilex = tilex;
+            newtiley = tiley;
+
+            while(shift < y && newx > 0 && map[newtiley-1][newtilex] != 1) {
+                // calculate the x,y point on the X axis where our 'ray' will intersect next
+                newx = tempx - (shift * (Math.tan((90 - angle) * (PI / 180))));
+                newy = tempy - shift;
+                //console.log('now at ' + x + ',' + y + ' (tile: ' + tilex + ',' + tiley + '), shift is ' + shift + ', rotation ' + angle + '. line will cut ' + parseInt(newx) + ',' + parseInt(newy));
+
+                // draw a dot at the next intersection point on the y axis
+                context.beginPath();
+                context.rect(newx + this.state.grid.gridOffsetX, newy + this.state.grid.gridOffsetY, 2, 2);
+                context.fillStyle = 'blue';
+                context.fill();
+
+                lineLengthForXAxis = this.getLineLengthBetweenPoints(x, y, newx, newy);
+
+                // check if there is a '1' in the corresponding index of mapData, otherwise increase shift and continue
+                shift += gridSize; // increment the shift until we reach end of array (or later, a '1' in the map index)
+
+                newtilex = parseInt(newx / gridSize);
+                newtiley = parseInt(newy / gridSize);
+            }
+
+            //console.log('X '+lineLengthForXAxis);
+
+            let shortest = lineLengthForXAxis <= lineLengthForYAxis ? lineLengthForXAxis : lineLengthForYAxis;
+
+            //console.log('hitting a wall at '+shortest+' pixels');
+
+            rectHeight = 100 - shortest;
+
+            // drawing a rect with height set to 640 - distance to wall
             context.beginPath();
-            context.rect(newx + this.state.grid.gridOffsetX, newy+this.state.grid.gridOffsetY, 1, 1);
-            context.fillStyle = 'black';
+            context.rect(i*(this.state.engine.maxWidth/this.state.engine.projectionWidth), this.state.engine.projectionWidth+(rectHeight / 2), this.state.engine.maxWidth/this.state.engine.projectionWidth, rectHeight);
+            context.fillStyle = '#ccc';
             context.fill();
 
-            // based on this information, return the value from the array for these coordinates
-            let newtilex = parseInt(newx / gridSize);
-            let newtiley = parseInt(newy / gridSize);
-            console.log('now at '+x+','+y+' (tile: '+tilex+','+tiley+'), shift is '+shift+', rotation '+angle+'. line (x) will cut '+parseInt(newx)+','+parseInt(newy)+' (tile: '+newtilex+','+newtiley+') first');
-
-            /*let newy = tempy + (shift / (Math.tan( (180 + angle) * (pi / 180) ))); newx = tempx - shift; tiley = parseInt(newy / 25);tilex = parseInt(newx / 25)}
-             let newy = tempy + (shift * (Math.tan( (90  + angle) * (pi / 180) ))); newx = tempx + shift; tiley = parseInt(newy / 25);tilex = parseInt(newx / 25)}
-             let newy = tempy - (shift / (Math.tan( (180 + angle) * (pi / 180) ))); newx = tempx + shift; tiley = parseInt(newy / 25);tilex = parseInt(newx / 25)}
-             let newy = tempy+ (shift / (Math.tan( (180 + angle) * (pi / 180) ))); newx = tempx - shift; tiley = parseInt(newy / 25);tilex = parseInt(newx / 25)}
-
-             let tempx = x;
-             let tempy = y;
-
-             let shift = 0;
-
-             if(angle <= 180){shift = tempx - (Math.floor(tempx / 25) * 25); if(shift == 0){shift = 25}}
-             if(angle <= 90) {shift = tempx - (Math.floor(tempx / 25) * 25); if(shift == 0){shift = 25}}
-             if(angle <= 0)  {shift = (Math.ceil(tempx / 25) * 25) - tempx; if(shift == 0){shift = 25}}
-             if(angle <= -90){shift = (Math.ceil(tempx / 25) * 25) - tempx; if(shift == 0){shift = 25}}
-             if(angle <= -180){shift = tempx - (Math.floor(tempx / 25) * 25); if(shift == 0){shift = 25}}
-
-             console.log(shift);
-             */
-
-
-
-// loop (or while)
-
-            // shift to the nearest edge
-
-
-            // determine which tile is the next to be traversed
-
-            // if array ends, return 1
-
-            // determine its value
-
-            // if its value is not 1, calculate linelength so far, then continue the loop
-
-// loop ends
-
-            // if 1 / array ends, the current linelength is the final linelength
-
-            // draw a rect, taking into account the linelength (the higher, the smaller)
-
             // to prevent crashes immediately set i to the end value for now
-            i = this.state.engine.projectionWidth;
+            //i = this.state.engine.projectionWidth;
         }
     }
 
