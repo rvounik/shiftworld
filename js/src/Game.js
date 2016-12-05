@@ -43,7 +43,7 @@ class Game extends Component {
             player: {
                 playerXpos: 256,
                 playerYpos: 158,
-                playerRotation: 240
+                playerRotation: 225
             },
             gameStates: {
                 initialised: false,
@@ -211,13 +211,15 @@ class Game extends Component {
     drawMiniMap() {
         this.clearCanvas();
 
-        if(!this.grid){
+        if(! this.grid){
             this.grid = new Grid({
                 grid: this.state.grid,
                 context: this.state.context,
                 mapData: this.state.mapData
             });
         }
+
+        this.drawProjection();
 
         // actually render the instantiated grid object
         this.grid.render();
@@ -231,24 +233,24 @@ class Game extends Component {
         let newX = this.getTranslationPointsForAngle(x, y, rot, this.state.engine.lineLength)[0];
         let newY = this.getTranslationPointsForAngle(x, y, rot, this.state.engine.lineLength)[1];
 
-        // we need to draw the line somewhere (no pun intended)
+        // we need to draw the line somewhere (pun intended)
         context.beginPath();
         context.strokeStyle = 'red';
         context.lineWidth = '1';
-        context.moveTo(x,y);
+        context.moveTo(x, y);
         context.lineTo(newX, newY);
-        // context.stroke(); // undo eventually. purely visual candy
+        context.stroke();
 
         // build visible rays for minimap
         const rotStart = rot - this.state.engine.fieldOfVision / 2;
         const rotSlice = this.state.engine.fieldOfVision / this.state.engine.projectionWidth;
 
         // todo: turn into while
-        for(let i = 0;i< this.state.engine.projectionWidth; i++){
-            let x = this.state.player.playerXpos+this.state.grid.gridOffsetX;
-            let y = this.state.player.playerYpos+this.state.grid.gridOffsetY;
-            let newX = this.getTranslationPointsForAngle(x, y,rotStart + rotSlice * i, this.state.engine.lineLength)[0];
-            let newY = this.getTranslationPointsForAngle(x, y,rotStart + rotSlice * i, this.state.engine.lineLength)[1];
+        for(let i = 0; i < this.state.engine.projectionWidth; i ++){
+            let x = this.state.player.playerXpos + this.state.grid.gridOffsetX;
+            let y = this.state.player.playerYpos + this.state.grid.gridOffsetY;
+            let newX = this.getTranslationPointsForAngle(x, y, rotStart + rotSlice * i, this.state.engine.lineLength)[0];
+            let newY = this.getTranslationPointsForAngle(x, y, rotStart + rotSlice * i, this.state.engine.lineLength)[1];
 
             context.beginPath();
             context.strokeStyle = 'rgba(255, 0, 0, 0.1)';
@@ -257,8 +259,6 @@ class Game extends Component {
             context.lineTo(newX, newY);
             context.stroke();
         }
-
-        this.drawProjection(); // debug only!
     }
 
     drawProjection() {
@@ -272,13 +272,13 @@ class Game extends Component {
         const x = this.state.player.playerXpos;
         const y = this.state.player.playerYpos;
 
-        for(let i = 0;i< this.state.engine.projectionWidth; i++) {
+        for(let i = 0; i < this.state.engine.projectionWidth; i ++) {
 
             // re-determine angle for current 'ray' and check if valid
-            let angle = this.state.player.playerRotation - (fov / 2);
+            let angle = (this.state.player.playerRotation % 360) - (fov / 2);
             angle += i * (fov / this.state.engine.projectionWidth);
             if(angle > 360){angle -= 360}
-            if(angle < 180 || angle > 270){console.log('WARNING: ROTATION NOT COVERED BY THIS SCENARIO YET!')}
+            //if(angle < 180 || angle > 270){console.log('WARNING: ROTATION NOT COVERED BY THIS SCENARIO YET!')}
 
             // set a load of probably useless vars and constants
             let xModulus = x % gridSize;
@@ -301,10 +301,25 @@ class Game extends Component {
             newtiley = tiley;
 
             // keep calculating the next intersection point for the X axis
-            while(xShift < x && newy > 0 && map[newtiley][newtilex-1] != 1) {
+            while(xShift < x && newy > 0 && map[newtiley][newtilex - 1] != 1) {
                 // determine new x, y intersection points
-                newy = y - (xShift * (Math.tan((180 + angle) * (PI / 180))));
-                newx = x - xShift;
+                if (angle >= 0 && angle <= 90) {
+                    newy = y - (xShift / (Math.tan((180 + angle) * (PI / 180))));
+                    newx = x + xShift;
+                }
+                if (angle >= 90 && angle <= 180) {
+                    newy = y + (xShift * (Math.tan((180 + angle) * (PI / 180))));
+                    newx = x - xShift;
+                }
+                // working one
+                if (angle => 180 && angle <= 270) {
+                    newy = y - (xShift * (Math.tan((180 + angle) * (PI / 180))));
+                    newx = x - xShift;
+                }
+                if (angle => 270 && angle <= 360) {
+                    newy = y + (xShift * (Math.tan((270 + angle) * (PI / 180))));
+                    newx = x - xShift;
+                }
 
                 // calculate distance between player and current intersection points
                 lineLengthForYAxis = this.getLineLengthBetweenPoints(x, y, newx, newy);
@@ -327,10 +342,25 @@ class Game extends Component {
             newtiley = tiley;
 
             // keep calculating the next intersection point for the X axis
-            while(yShift < y && newx > 0 && map[newtiley-1][newtilex] != 1) {
+            while(yShift < y && newx > 0 && map[newtiley - 1][newtilex] != 1) {
                 // determine new x, y intersection points
-                newx = x - (yShift * (Math.tan((90 - angle) * (PI / 180))));
-                newy = y - yShift;
+                if (angle >= 0 && angle <= 90) {
+                    newx = x - (yShift / (Math.tan((180 + angle) * (PI / 180))));
+                    newy = y + yShift;
+                }
+                if (angle >= 90 && angle <= 180) {
+                    newx = x + (yShift * (Math.tan((180 + angle) * (PI / 180))));
+                    newy = y - yShift;
+                }
+                // working one
+                if (angle => 180 && angle <= 270) {
+                    newx = x - (yShift * (Math.tan((180 + angle) * (PI / 180))));
+                    newy = y - yShift;
+                }
+                if (angle => 270 && angle <= 360) {
+                    newy = x + (yShift * (Math.tan((270 + angle) * (PI / 180))));
+                    newy = y - yShift;
+                }
 
                 // calculate distance between player and current intersection points
                 lineLengthForXAxis = this.getLineLengthBetweenPoints(x, y, newx, newy);
@@ -354,8 +384,8 @@ class Game extends Component {
 
             // calculate fish eye correction
             let angleDifference = (this.state.player.playerRotation) - angle - (fov / 2);
-            let angleDifferenceRadians = angleDifference * (PI / 180); // convert to radians
-            let fishEyeCorrection = 0 - Math.cos(angleDifferenceRadians); // cos of angle difference in radians
+            let angleDifferenceInRadians = angleDifference * (PI / 180); // convert to radians
+            let fishEyeCorrection = 0 - Math.cos(angleDifferenceInRadians); // cos of angle difference in radians
 
             // some magic to apply the fish eye correction on the height of the wall section
             let sliceHeight = (shortestRoute * fishEyeCorrection);
@@ -391,28 +421,28 @@ class Game extends Component {
 
                 // lets just assume we always need to render something
                 if(this.state.keys.left) {
-                    this.state.player.playerRotation-=this.state.engine.rotationSpeed;
-                    if(this.state.player.playerRotation<0){this.state.player.playerRotation+=360}
-                    this.drawMiniMap(); // redraw map. performance penalty. remove when projection finished
+                    this.state.player.playerRotation -= this.state.engine.rotationSpeed;
+                    //if(this.state.player.playerRotation < 0){this.state.player.playerRotation += 360}
                     this.drawProjection(); // redraw projection
+                    this.drawMiniMap(); // redraw map. performance penalty. remove when projection finished
                 }
                 if(this.state.keys.right) {
-                    this.state.player.playerRotation+=this.state.engine.rotationSpeed;
-                    if(this.state.player.playerRotation>360){this.state.player.playerRotation-=360}
-                    this.drawMiniMap();
+                    this.state.player.playerRotation += this.state.engine.rotationSpeed;
+                    //if(this.state.player.playerRotation > 360){this.state.player.playerRotation -= 360}
                     this.drawProjection();
+                    this.drawMiniMap();
                 }
                 if(this.state.keys.down) {
-                    this.state.player.playerXpos = this.getTranslationPointsForAngle(playerXpos, playerYpos, playerRotation, 0-playerSpeed)[0];
-                    this.state.player.playerYpos = this.getTranslationPointsForAngle(playerXpos, playerYpos, playerRotation, 0-playerSpeed)[1];
-                    this.drawMiniMap();
+                    this.state.player.playerXpos = this.getTranslationPointsForAngle(playerXpos, playerYpos, playerRotation, 0 - playerSpeed)[0];
+                    this.state.player.playerYpos = this.getTranslationPointsForAngle(playerXpos, playerYpos, playerRotation, 0 - playerSpeed)[1];
                     this.drawProjection();
+                    this.drawMiniMap();
                 }
                 if(this.state.keys.up) {
                     this.state.player.playerXpos = this.getTranslationPointsForAngle(playerXpos, playerYpos, playerRotation, playerSpeed)[0];
                     this.state.player.playerYpos = this.getTranslationPointsForAngle(playerXpos, playerYpos, playerRotation, playerSpeed)[1];
-                    this.drawMiniMap();
                     this.drawProjection();
+                    this.drawMiniMap();
                 }
 
                 // checkifenemiesneedtomove(); // call to some method that does things with enemy movement
@@ -427,9 +457,9 @@ class Game extends Component {
 
     render() {
         return (
-            <canvas id='canvas'
-                    width={this.state.engine.maxWidth}
-                    height={this.state.engine.maxHeight}
+            <canvas id = 'canvas'
+                    width = {this.state.engine.maxWidth}
+                    height = {this.state.engine.maxHeight}
             >Oh no! Canvas is not supported on your device :(</canvas>
         )
     }
