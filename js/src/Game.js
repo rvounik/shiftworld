@@ -31,21 +31,21 @@ class Game extends Component {
                 fps: 25,
                 maxWidth: 640,
                 maxHeight: 480,
-                projectionWidth: 80,
+                projectionWidth: 160,
                 fieldOfVision: 80,
-                rotationSpeed: 1,
+                rotationSpeed: 3,
                 lineLength: 50,
                 playerSpeed: 1
             },
             grid: {
                 gridSize: 10,
-                gridOffsetX: 350,
-                gridOffsetY: 305
+                gridOffsetX: 0,
+                gridOffsetY: 0
             },
             player: {
                 playerXpos: 52,
                 playerYpos: 52,
-                playerRotation: 315
+                playerRotation: 135
             },
             gameStates: {
                 initialised: false,
@@ -283,7 +283,7 @@ class Game extends Component {
         const gridSize = this.state.grid.gridSize;
         const map = this.state.mapData[0];
         const fov = this.state.engine.fieldOfVision;
-        const debugProjection = true;
+        const debugProjection = false;
         const resolution = this.state.engine.maxWidth / this.state.engine.projectionWidth;
         const projectionDistance = (this.state.engine.projectionWidth / 5) / Math.tan((fov / 2) * (PI / 180));
         const x = this.state.player.playerXpos;
@@ -321,15 +321,15 @@ class Game extends Component {
             while(xShift < x && newy > 0 && map[newtiley][newtilex - 1] != 1) {
                 // determine new x, y intersection points
                 if (angle > 0 && angle < 90) {
-                    newy = y + (xShift / (Math.tan((angle) * (PI / 180))));
+                    newy = y + (xShift * (Math.tan((angle) * (PI / 180))));
                     newx = x + xShift;
                 }
                 if (angle >= 90 && angle < 180) {
-                    newy = y + (xShift * (Math.tan(((270 + angle) % 360) * (PI / 180))));
+                    newy = y + (xShift / (Math.tan(((270 + angle) % 360) * (PI / 180))));
                     newx = x - xShift;
                 }
                 if (angle >= 180 && angle < 270) {
-                    newy = y - (xShift + (Math.tan((180 + angle) * (PI / 180))));
+                    newy = y - (xShift * (Math.tan((180 + angle) * (PI / 180))));
                     newx = x - xShift;
                 }
                 if (angle >= 270 && angle < 360) {
