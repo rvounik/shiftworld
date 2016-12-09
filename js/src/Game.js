@@ -45,7 +45,7 @@ class Game extends Component {
             player: {
                 playerXpos: 52,
                 playerYpos: 52,
-                playerRotation: 135
+                playerRotation: 133.1
             },
             gameStates: {
                 initialised: false,
@@ -265,13 +265,36 @@ class Game extends Component {
         this.drawProjection();
     }
 
-    withinMapBounds(newtiley, newtilex, map) {
+    withinMapBounds(newx, newy) {
+        const map = this.state.mapData[0];
+        const gridSize = this.state.grid.gridSize;
+        let mapWidth = map[0].length * gridSize; // 10
+        let mapHeight = map.length * gridSize; // 25
+
+        // calculate the lookup position for mapData
+        let newtilex = parseInt(newx / gridSize);
+        let newtiley = parseInt(newy / gridSize);
+
+        console.log('newy:'+newy+', mapheight:'+mapHeight)
+
+        // first check if newx, newy are out of range of the map by pixels
+        if (newx > mapWidth || newx < 0) {return false}
+        if (newy > mapHeight || newy < 0) {return false}
+
+        // then check if the calculated lookup index for the array is within its bounds
         if (
-            (newtiley) > map[0].length
+               newtiley > map[0].length
             || newtiley < 0
-            || (newtilex) > map[0][0].length
+            || newtilex > map.length
             || newtilex < 0
+            || isNaN(newtilex)
+            || isNaN(newtiley)
         ) {
+            return false;
+        }
+
+        // last check if there is a wall in the way
+        if (map[newtiley][newtilex] != 0) {
             return false;
         }
 
@@ -283,133 +306,330 @@ class Game extends Component {
         const gridSize = this.state.grid.gridSize;
         const map = this.state.mapData[0];
         const fov = this.state.engine.fieldOfVision;
-        const debugProjection = false;
+        const debugProjection = true;
         const resolution = this.state.engine.maxWidth / this.state.engine.projectionWidth;
-        const projectionDistance = (this.state.engine.projectionWidth / 5) / Math.tan((fov / 2) * (PI / 180));
+        //const projectionDistance = (this.state.engine.projectionWidth / 5) / Math.tan((fov / 2) * (PI / 180));
         const x = this.state.player.playerXpos;
         const y = this.state.player.playerYpos;
         let debugLineArray = [];
 
         for(let i = 0; i < this.state.engine.projectionWidth; i ++) {
-
             // re-determine angle for current 'ray' and check if valid
-            let angle = (this.state.player.playerRotation) - (fov / 2) % 360;
+            let angle = (this.state.player.playerRotation) - (fov / 2);
             if(angle < 0) {angle+=360}
             angle += i * (fov / this.state.engine.projectionWidth); // this is the ray' rotation, not the player'
 
-            // set a load of probably useless vars and constants
-            let xModulus = x % gridSize;
-            let yModulus = y % gridSize;
-            let xShift = xModulus;
-            let yShift = yModulus;
-            let tilex = parseInt(x / gridSize);
-            let tiley = parseInt(y / gridSize);
+            // set initials
             let newx = x;
             let newy = y;
             let lineLengthForXAxis = 0;
             let lineLengthForYAxis = 0;
-            let newtilex = tilex;
-            let newtiley = tiley;
+            let xModulus = 0;
+            let yModulus = 0;
+            let endReached = false;
 
             // CALCULATE SHORTEST ROUTE TO WALL INTERSECTION FOR Y-AXIS (red)
 
-            // reset the lookup position for mapData
-            newtilex = tilex;
-            newtiley = tiley;
-
-            // keep calculating the next intersection point for the X axis
-            while(xShift < x && newy > 0 && map[newtiley][newtilex - 1] != 1) {
-                // determine new x, y intersection points
-                if (angle > 0 && angle < 90) {
-                    newy = y + (xShift * (Math.tan((angle) * (PI / 180))));
-                    newx = x + xShift;
+            // new style
+            if (angle > 0 && angle < 90) {
+                if (x > gridSize){
+                    xModulus = gridSize - (x % gridSize);
+                } else {
+                    xModulus = gridSize - x;
                 }
-                if (angle >= 90 && angle < 180) {
-                    newy = y + (xShift / (Math.tan(((270 + angle) % 360) * (PI / 180))));
-                    newx = x - xShift;
+                let xShift = xModulus; // initial value for xShift
+                endReached = false;
+                while(!endReached) {
+                    // determine new x, y
+                    newy = y + (xShift * (Math.tan((angle) * (PI / 180)))); // going down
+                    newx = x + xShift; // going left
+                    if (!this.withinMapBounds(newx, newy)) {
+                        let mapWidth = map[0].length * gridSize; // 10
+                        let mapHeight = map.length * gridSize; // 25
+                        if (newx > mapWidth) { newx = mapWidth }
+                        if (newx < 0) { newx = 0 }
+                        if (newy > mapHeight) { newy = mapHeight }
+                        if (newy < 0) { newy = 0 }
+                        endReached = true;
+                    }
+                    // calculate distance between player and current intersection points
+                    lineLengthForYAxis = this.getLineLengthBetweenPoints(x, y, newx, newy);
+
+                    // increment the shift until scope of array is reached
+                    xShift += gridSize;
+
+                    // draw a dot for debugging purposes
+                    if(debugProjection) {
+                        context.beginPath();
+                        context.rect(newx + this.state.grid.gridOffsetX, newy + this.state.grid.gridOffsetY, 2, 2);
+                        context.fillStyle = 'red';
+                        context.fill();
+                    }
                 }
-                if (angle >= 180 && angle < 270) {
-                    newy = y - (xShift * (Math.tan((180 + angle) * (PI / 180))));
-                    newx = x - xShift;
+            }
+            if (angle >= 90 && angle < 180) {
+                if (x > gridSize){
+                    xModulus = x % gridSize;
+                } else {
+                    xModulus = x;
                 }
-                if (angle >= 270 && angle < 360) {
-                    newy = y - (xShift / (Math.tan((90 + angle) * (PI / 180))));
-                    newx = x + xShift;
+                let xShift = xModulus; // initial value for xShift
+                endReached = false;
+                while(!endReached) {
+                    // determine new x, y
+                    newy = y + (xShift / (Math.tan(((270 + angle) % 360) * (PI / 180)))); // going down
+                    newx = x - xShift; // going left
+                    if (!this.withinMapBounds(newx, newy)) {
+                        let mapWidth = map[0].length * gridSize; // 10
+                        let mapHeight = map.length * gridSize; // 25
+                        if (newx > mapWidth) { newx = mapWidth }
+                        if (newx < 0) { newx = 0 }
+                        if (newy > mapHeight) { newy = mapHeight }
+                        if (newy < 0) { newy = 0 }
+                        endReached = true;
+                    }
+                    // calculate distance between player and current intersection points
+                    lineLengthForYAxis = this.getLineLengthBetweenPoints(x, y, newx, newy);
+
+                    // increment the shift until scope of array is reached
+                    xShift += gridSize;
+
+                    // draw a dot for debugging purposes
+                    if(debugProjection) {
+                        context.beginPath();
+                        context.rect(newx + this.state.grid.gridOffsetX, newy + this.state.grid.gridOffsetY, 2, 2);
+                        context.fillStyle = 'red';
+                        context.fill();
+                    }
                 }
-
-                // calculate distance between player and current intersection points
-                lineLengthForYAxis = this.getLineLengthBetweenPoints(x, y, newx, newy);
-
-                // increment the shift until scope of array is reached
-                xShift += gridSize;
-
-                // shift the lookup position for mapData
-                newtilex = parseInt(newx / gridSize);
-                newtiley = parseInt(newy / gridSize);
-
-                if (!this.withinMapBounds(newtiley,newtilex,map)) {
-                    break;
+            }
+            if (angle >= 180 && angle < 270) {
+                if (x > gridSize){
+                    xModulus = x % gridSize;
+                } else {
+                    xModulus = x;
                 }
+                let xShift = xModulus; // initial value for xShift
+                endReached = false;
+                while(!endReached) {
+                    // determine new x, y
+                    newy = y - (xShift * (Math.tan((180 + angle) * (PI / 180)))); // going up
+                    newx = x - xShift; // going right
+                    if (!this.withinMapBounds(newx, newy)) {
+                        let mapWidth = map[0].length * gridSize; // 10
+                        let mapHeight = map.length * gridSize; // 25
+                        if (newx > mapWidth) { newx = mapWidth }
+                        if (newx < 0) { newx = 0 }
+                        if (newy > mapHeight) { newy = mapHeight }
+                        if (newy < 0) { newy = 0 }
+                        endReached = true;
+                    }
+                    // calculate distance between player and current intersection points
+                    lineLengthForYAxis = this.getLineLengthBetweenPoints(x, y, newx, newy);
 
-                // draw a marker at the next intersection point on the y axis
-                if(debugProjection) {
-                    context.beginPath();
-                    context.rect(newx + this.state.grid.gridOffsetX, newy + this.state.grid.gridOffsetY, 2, 2);
-                    context.fillStyle = 'red';
-                    context.fill();
+                    // increment the shift until scope of array is reached
+                    xShift += gridSize;
 
-                    //console.log('drawing red dot at '+(newx + this.state.grid.gridOffsetX))
+                    // draw a dot for debugging purposes
+                    if(debugProjection) {
+                        context.beginPath();
+                        context.rect(newx + this.state.grid.gridOffsetX, newy + this.state.grid.gridOffsetY, 2, 2);
+                        context.fillStyle = 'red';
+                        context.fill();
+                    }
+                }
+            }
+            if (angle >= 270 && angle < 360) {
+                if (x > gridSize){
+                    xModulus = gridSize - (x % gridSize);
+                } else {
+                    xModulus = gridSize - x;
+                }
+                let xShift = xModulus; // initial value for xShift
+                endReached = false;
+                while(!endReached) {
+                    // determine new x, y
+                    newy = y - (xShift / (Math.tan((90 + angle) * (PI / 180)))); // going up
+                    newx = x + xShift; // going right
+                    if (!this.withinMapBounds(newx, newy)) {
+                        let mapWidth = map[0].length * gridSize; // 10
+                        let mapHeight = map.length * gridSize; // 25
+                        if (newx > mapWidth) { newx = mapWidth }
+                        if (newx < 0) { newx = 0 }
+                        if (newy > mapHeight) { newy = mapHeight }
+                        if (newy < 0) { newy = 0 }
+                        endReached = true;
+                    }
+                    // calculate distance between player and current intersection points
+                    lineLengthForYAxis = this.getLineLengthBetweenPoints(x, y, newx, newy);
+
+                    // increment the shift until scope of array is reached
+                    xShift += gridSize;
+
+                    // draw a dot for debugging purposes
+                    if(debugProjection) {
+                        context.beginPath();
+                        context.rect(newx + this.state.grid.gridOffsetX, newy + this.state.grid.gridOffsetY, 2, 2);
+                        context.fillStyle = 'red';
+                        context.fill();
+                    }
                 }
             }
 
-            // CALCULATE SHORTEST ROUTE TO WALL INTERSECTION FOR X-AXIS (blue)
+            // reset
+            newx = x;
+            newy = y;
 
-            // reset the lookup position for mapData
-            newtilex = tilex;
-            newtiley = tiley;
+            // CALCULATE SHORTEST ROUTE TO WALL INTERSECTION FOR Y-AXIS (blue)
 
-            // keep calculating the next intersection point for the X axis
-            while(yShift < y && newx > 0 && map[newtiley - 1][newtilex] != 1) {
-                // determine new x, y intersection points
-                if (angle > 0 && angle < 90) {
-                    newx = x + (yShift / (Math.tan((angle) * (PI / 180))));
-                    newy = y + yShift;
+            if (angle > 0 && angle < 90) {
+                if (y > gridSize){
+                    yModulus = gridSize - (y % gridSize);
+                } else {
+                    yModulus = gridSize - y;
                 }
-                if (angle >= 90 && angle < 180) {
-                    newx = x - (yShift * (Math.tan(((270 + angle) % 360) * (PI / 180)))  );
-                    newy = y + yShift;
-                }
-                if (angle >= 180 && angle < 270) {
-                    newx = x - (yShift / (Math.tan((180 + angle) * (PI / 180))));
-                    newy = y - yShift;
-                }
-                if (angle >= 270 && angle < 360) {
-                    newx = x + (yShift * (Math.tan((90 + angle) * (PI / 180))));
-                    newy = y - yShift;
-                }
+                let yShift = yModulus; // initial value for yShift
+                endReached = false;
+                while(!endReached) {
+                    // determine new x, y
+                    newx = x + (yShift / (Math.tan((angle) * (PI / 180)))); // going right
+                    newy = y + yShift; // going down
+                    if (!this.withinMapBounds(newx, newy)) {
+                        let mapWidth = map[0].length * gridSize; // 10
+                        let mapHeight = map.length * gridSize; // 25
+                        if (newx > mapWidth) { newx = mapWidth }
+                        if (newx < 0) { newx = 0 }
+                        if (newy > mapHeight) { newy = mapHeight }
+                        if (newy < 0) { newy = 0 }
+                        endReached = true;
+                    }
+                    // calculate distance between player and current intersection points
+                    lineLengthForXAxis = this.getLineLengthBetweenPoints(x, y, newx, newy);
 
-                // calculate distance between player and current intersection points
-                lineLengthForXAxis = this.getLineLengthBetweenPoints(x, y, newx, newy);
+                    // increment the shift until scope of array is reached
+                    yShift += gridSize;
 
-                // shift the lookup position for mapData
-                newtilex = parseInt(newx / gridSize);
-                newtiley = parseInt(newy / gridSize);
-
-                if (!this.withinMapBounds(newtiley-1,newtilex,map)) {
-                    break;
-                }
-
-                // increment the shift until scope of array is reached
-                yShift += gridSize;
-
-                // draw a marker at the next intersection point on the x axis
-                if(debugProjection) {
-                    context.beginPath();
-                    context.rect(newx + this.state.grid.gridOffsetX, newy + this.state.grid.gridOffsetY, 2, 2);
-                    context.fillStyle = 'blue';
-                    context.fill()
+                    // draw a dot for debugging purposes
+                    if(debugProjection) {
+                        context.beginPath();
+                        context.rect(newx + this.state.grid.gridOffsetX, newy + this.state.grid.gridOffsetY, 2, 2);
+                        context.fillStyle = 'blue';
+                        context.fill();
+                    }
                 }
             }
+            if (angle >= 90 && angle < 180) {
+                if (y > gridSize){
+                    yModulus = gridSize - (y % gridSize);
+                } else {
+                    yModulus = gridSize - y;
+                }
+                let yShift = yModulus; // initial value for yShift
+                endReached = false;
+                while(!endReached) {
+                    // determine new x, y
+                    newx = x - (yShift * (Math.tan(((270 + angle) % 360) * (PI / 180))));  // going left
+                    newy = y + yShift; // going down
+                    if (!this.withinMapBounds(newx, newy)) {
+                        let mapWidth = map[0].length * gridSize; // 10
+                        let mapHeight = map.length * gridSize; // 25
+                        if (newx > mapWidth) { newx = mapWidth }
+                        if (newx < 0) { newx = 0 }
+                        if (newy > mapHeight) { newy = mapHeight }
+                        if (newy < 0) { newy = 0 }
+                        endReached = true;
+                    }
+                    // calculate distance between player and current intersection points
+                    lineLengthForXAxis = this.getLineLengthBetweenPoints(x, y, newx, newy);
+
+                    // increment the shift until scope of array is reached
+                    yShift += gridSize;
+
+                    // draw a dot for debugging purposes
+                    if(debugProjection) {
+                        context.beginPath();
+                        context.rect(newx + this.state.grid.gridOffsetX, newy + this.state.grid.gridOffsetY, 2, 2);
+                        context.fillStyle = 'blue';
+                        context.fill();
+                    }
+                }
+            }
+            if (angle >= 180 && angle < 270) {
+                if (y > gridSize){
+                    yModulus = (y % gridSize);
+                } else {
+                    yModulus = y;
+                }
+                let yShift = yModulus; // initial value for yShift
+                endReached = false;
+                while(!endReached) {
+                    // determine new x, y
+                    newx = x - (yShift / (Math.tan((180 + angle) * (PI / 180))));  // going left
+                    newy = y - yShift; // going up
+                    if (!this.withinMapBounds(newx, newy)) {
+                        let mapWidth = map[0].length * gridSize; // 10
+                        let mapHeight = map.length * gridSize; // 25
+                        if (newx > mapWidth) { newx = mapWidth }
+                        if (newx < 0) { newx = 0 }
+                        if (newy > mapHeight) { newy = mapHeight }
+                        if (newy < 0) { newy = 0 }
+                        endReached = true;
+                    }
+                    // calculate distance between player and current intersection points
+                    lineLengthForXAxis = this.getLineLengthBetweenPoints(x, y, newx, newy);
+
+                    // increment the shift until scope of array is reached
+                    yShift += gridSize;
+
+                    // draw a dot for debugging purposes
+                    if(debugProjection) {
+                        context.beginPath();
+                        context.rect(newx + this.state.grid.gridOffsetX, newy + this.state.grid.gridOffsetY, 2, 2);
+                        context.fillStyle = 'blue';
+                        context.fill();
+                    }
+                }
+            }
+            if (angle >= 270 && angle < 360) {
+                if (y > gridSize){
+                    yModulus = (y % gridSize);
+                } else {
+                    yModulus = y;
+                }
+                let yShift = yModulus; // initial value for yShift
+                endReached = false;
+                while(!endReached) {
+                    // determine new x, y
+                    newx = x + (yShift * (Math.tan((90 + angle) * (PI / 180))));  // going right
+                    newy = y - yShift; // going up
+                    if (!this.withinMapBounds(newx, newy)) {
+                        let mapWidth = map[0].length * gridSize; // 10
+                        let mapHeight = map.length * gridSize; // 25
+                        if (newx > mapWidth) { newx = mapWidth }
+                        if (newx < 0) { newx = 0 }
+                        if (newy > mapHeight) { newy = mapHeight }
+                        if (newy < 0) { newy = 0 }
+                        endReached = true;
+                    }
+                    // calculate distance between player and current intersection points
+                    lineLengthForXAxis = this.getLineLengthBetweenPoints(x, y, newx, newy);
+
+                    // increment the shift until scope of array is reached
+                    yShift += gridSize;
+
+                    // draw a dot for debugging purposes
+                    if(debugProjection) {
+                        context.beginPath();
+                        context.rect(newx + this.state.grid.gridOffsetX, newy + this.state.grid.gridOffsetY, 2, 2);
+                        context.fillStyle = 'blue';
+                        context.fill();
+                    }
+                }
+            }
+
+
+
+
 
             // DRAW WALL SECTION WITH ITS HEIGHT RELATED TO ITS DISTANCE
 
@@ -422,11 +642,12 @@ class Game extends Component {
             // calculate fish eye correction
             let angleDifference = (this.state.player.playerRotation) - angle - (fov / 2);
             let angleDifferenceInRadians = angleDifference * (PI / 180); // convert to radians
-            let fishEyeCorrection = 0 - Math.cos(angleDifferenceInRadians); // cos of angle difference in radians
+            //let fishEyeCorrection = 0 - Math.cos(angleDifferenceInRadians); // cos of angle difference in radians
+            let fishEyeCorrection = 1;
 
             // some magic to apply the fish eye correction on the height of the wall section
             let sliceHeight = (shortestRoute * fishEyeCorrection);
-            sliceHeight = (100 / sliceHeight) * projectionDistance;
+            //sliceHeight = (100 / sliceHeight) * projectionDistance;
 
             // draw the wall section
             context.beginPath();
@@ -436,7 +657,8 @@ class Game extends Component {
                 resolution,
                 255 - sliceHeight
             );
-            let colorval = parseInt(Math.pow(sliceHeight, 2) / 255); // the closer, the brighter
+            // let colorval = parseInt(Math.pow(sliceHeight, 2) / 255); // the closer, the brighter
+            let colorval = 255;
             context.fillStyle = 'rgba(0, '+colorval+', 0, 1)';
             context.fill();
 
@@ -444,7 +666,7 @@ class Game extends Component {
             if(debugProjection) {i = this.state.engine.projectionWidth}
         }
 
-        //console.log(debugLineArray);
+        console.log(debugLineArray);
     }
 
     update() {
