@@ -275,8 +275,6 @@ class Game extends Component {
         let newtilex = parseInt(newx / gridSize);
         let newtiley = parseInt(newy / gridSize);
 
-        console.log('newy:'+newy+', mapheight:'+mapHeight)
-
         // first check if newx, newy are out of range of the map by pixels
         if (newx > mapWidth || newx < 0) {return false}
         if (newy > mapHeight || newy < 0) {return false}
@@ -306,7 +304,7 @@ class Game extends Component {
         const gridSize = this.state.grid.gridSize;
         const map = this.state.mapData[0];
         const fov = this.state.engine.fieldOfVision;
-        const debugProjection = true;
+        const debugProjection = false;
         const resolution = this.state.engine.maxWidth / this.state.engine.projectionWidth;
         //const projectionDistance = (this.state.engine.projectionWidth / 5) / Math.tan((fov / 2) * (PI / 180));
         const x = this.state.player.playerXpos;
@@ -666,7 +664,7 @@ class Game extends Component {
             if(debugProjection) {i = this.state.engine.projectionWidth}
         }
 
-        console.log(debugLineArray);
+        //console.log(debugLineArray);
     }
 
     update() {
