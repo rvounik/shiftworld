@@ -44,7 +44,7 @@ class Game extends Component {
             },
             player: {
                 playerXpos: 52,
-                playerYpos: 52,
+                playerYpos: 82,
                 playerRotation: 133.1
             },
             gameStates: {
@@ -299,24 +299,106 @@ class Game extends Component {
         return true;
     }
 
-    drawProjection() {
+    getLineLengthForAngle(angle) {
+
+        // set some constants
         const context = this.state.context;
-        const gridSize = this.state.grid.gridSize;
-        const map = this.state.mapData[0];
-        const fov = this.state.engine.fieldOfVision;
-        const debugProjection = false;
-        const resolution = this.state.engine.maxWidth / this.state.engine.projectionWidth;
-        //const projectionDistance = (this.state.engine.projectionWidth / 5) / Math.tan((fov / 2) * (PI / 180));
         const x = this.state.player.playerXpos;
         const y = this.state.player.playerYpos;
-        let debugLineArray = [];
+        const gridSize = this.state.grid.gridSize;
+        const map = this.state.mapData[0];
+        const radiansConversion = PI / 180;
+        const mapWidth = gridSize * map[0].length;
+        const mapHeight = gridSize * map.height;
+
+        // set some variables
+        let xShift, yShift, tempLengthY, tempLengthX;
+        let newx = x;
+        let newy = y;
+        let lineLengthForXAxis, lineLengthForYAxis; // definitive values are stored in here
+
+        // set initial map indices
+        let tileX = parseInt(x / gridSize);
+        let tileY = parseInt(y / gridSize);
+
+        // xshift calculation
+        while (map[tileY][tileX] == 0) {
+            if (angle > 0 && angle <= 90) {
+                newx > gridSize ? xShift = gridSize - (newx % gridSize) : xShift = gridSize - newx; // going right
+                if (xShift == 0) { xShift = gridSize }
+                newy += (xShift * (Math.tan(angle * radiansConversion))); // going down
+                newx += xShift; // going right
+                tempLengthX = this.getLineLengthBetweenPoints(x, y, newx, newy);
+            }
+            if (angle > 90 && angle <= 180) {
+                newx < gridSize ? xShift = newx : xShift = (newx % gridSize); // going left
+                if (xShift == 0) { xShift = gridSize }
+                newy += (xShift / (Math.tan((angle + 270) * radiansConversion))); // going down
+                newx -= xShift; // going left
+                tempLengthX = this.getLineLengthBetweenPoints(x, y, newx, newy);
+            }
+            if (angle > 180 && angle <= 270) {
+                newx < gridSize ? xShift = newx : xShift = (newx % gridSize); // going left
+                if (xShift == 0) { xShift = gridSize }
+                newy -= (xShift * (Math.tan((angle + 180) * radiansConversion))); // going up
+                newx -= xShift; // going left
+                tempLengthX = this.getLineLengthBetweenPoints(x, y, newx, newy);
+            }
+            if (angle > 270 && angle < 360) {
+                newx > gridSize ? xShift = gridSize - (newx % gridSize) : xShift = gridSize - newx; // going right
+                if (xShift == 0) { xShift = gridSize }
+                newy -= (xShift / (Math.tan((angle + 90) * radiansConversion))); // going up
+                newx += xShift; // going right
+                tempLengthX = this.getLineLengthBetweenPoints(x, y, newx, newy);
+            }
+
+            // set new map indices
+            let tileX = parseInt(newx / gridSize);
+            let tileY = parseInt(newy / gridSize);
+
+            // todo: we could do the check for '1' here.. convenient?
+            if (tileX < 0 || tileY < 0 || tileX > mapWidth || tileY > mapHeight) {
+                // todo: its supposed to get the outermost values here, not stick with last value calculated!
+                break;
+            } else {
+                lineLengthForXAxis = tempLengthX; // keep on increasing
+
+                // draw dot
+                context.beginPath();
+                context.rect((newx + this.state.grid.gridOffsetX)-1, (newy + this.state.grid.gridOffsetY)-1, 2, 2);
+                context.fillStyle = 'green';
+                context.fill();
+            }
+        }
+
+        console.log('calculated line length for X axis is '+lineLengthForXAxis);
+
+        // yshift calculation
+        if (angle >   0 && angle <=  90) {}
+        if (angle >  90 && angle <= 180) {}
+        if (angle > 180 && angle <= 270) {}
+        if (angle > 270 && angle <  360) {}
+
+        // compare and return shortest length
+        // return shortest;
+    }
+
+    drawProjection() {
+        const context = this.state.context;
+        //const debugProjection = false;
+        //const resolution = this.state.engine.maxWidth / this.state.engine.projectionWidth;
+        //const projectionDistance = (this.state.engine.projectionWidth / 5) / Math.tan((fov / 2) * (PI / 180));
+        // let debugLineArray = [];
 
         for(let i = 0; i < this.state.engine.projectionWidth; i ++) {
             // re-determine angle for current 'ray' and check if valid
-            let angle = (this.state.player.playerRotation) - (fov / 2);
-            if(angle < 0) {angle+=360}
-            angle += i * (fov / this.state.engine.projectionWidth); // this is the ray' rotation, not the player'
+            let angle = (this.state.player.playerRotation) - (this.state.engine.fieldOfVision / 2); // starting angle for projection
+            if (angle < 0) { angle += 360 } // correction if negative value
+            angle += i * (this.state.engine.fieldOfVision / this.state.engine.projectionWidth); // this is the ray' rotation, not the player'
 
+            let lineLength = this.getLineLengthForAngle(angle);
+
+/*
             // set initials
             let newx = x;
             let newy = y;
@@ -625,10 +707,8 @@ class Game extends Component {
                 }
             }
 
-
-
-
-
+*/
+/*
             // DRAW WALL SECTION WITH ITS HEIGHT RELATED TO ITS DISTANCE
 
             // calculate the definitive shortest route to nearest wall
@@ -658,13 +738,11 @@ class Game extends Component {
             // let colorval = parseInt(Math.pow(sliceHeight, 2) / 255); // the closer, the brighter
             let colorval = 255;
             context.fillStyle = 'rgba(0, '+colorval+', 0, 1)';
-            context.fill();
+            context.fill();*/
 
             // to prevent crashes immediately set i to the end value for now
-            if(debugProjection) {i = this.state.engine.projectionWidth}
+            i = this.state.engine.projectionWidth;
         }
-
-        //console.log(debugLineArray);
     }
 
     update() {
