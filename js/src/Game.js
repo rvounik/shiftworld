@@ -15,8 +15,6 @@ class Game extends Component {
     constructor(props) {
         super(props);
 
-        //      256,158
-
         // global state
         this.state = {
             context: null,
@@ -45,7 +43,7 @@ class Game extends Component {
             player: {
                 playerXpos: 52,
                 playerYpos: 82,
-                playerRotation: 133.1
+                playerRotation: 95.1
             },
             gameStates: {
                 initialised: false,
@@ -265,7 +263,7 @@ class Game extends Component {
         this.drawProjection();
     }
 
-    withinMapBounds(newx, newy) {
+    /*withinMapBounds(newx, newy) {
         const map = this.state.mapData[0];
         const gridSize = this.state.grid.gridSize;
         let mapWidth = map[0].length * gridSize; // 10
@@ -297,7 +295,7 @@ class Game extends Component {
         }
 
         return true;
-    }
+    }*/
 
     getLineLengthForAngle(angle) {
 
@@ -308,8 +306,11 @@ class Game extends Component {
         const gridSize = this.state.grid.gridSize;
         const map = this.state.mapData[0];
         const radiansConversion = PI / 180;
-        const mapWidth = gridSize * map[0].length;
-        const mapHeight = gridSize * map.height;
+        const mapWidth = map[0].length;
+        const mapHeight = map.length;
+        const mapWidthInPixels = gridSize * mapWidth;
+        const mapHeightInPixels = gridSize * mapHeight;
+
 
         // set some variables
         let xShift, yShift, tempLengthY, tempLengthX;
@@ -322,12 +323,16 @@ class Game extends Component {
         let tileY = parseInt(y / gridSize);
 
         // xshift calculation
-        while (map[tileY][tileX] == 0) {
+        while (map[tileY][tileX] == 0 && newx > 0 && newy > 0 && newx < mapWidthInPixels && newy < mapHeightInPixels) {
             if (angle > 0 && angle <= 90) {
                 newx > gridSize ? xShift = gridSize - (newx % gridSize) : xShift = gridSize - newx; // going right
                 if (xShift == 0) { xShift = gridSize }
                 newy += (xShift * (Math.tan(angle * radiansConversion))); // going down
                 newx += xShift; // going right
+                if(newx>mapWidthInPixels) {newx=mapWidthInPixels};
+                if(newy>mapHeightInPixels) {newy=mapHeightInPixels};
+                if(newx < 0){newx=0}
+                if(newy<0){newy=0}
                 tempLengthX = this.getLineLengthBetweenPoints(x, y, newx, newy);
             }
             if (angle > 90 && angle <= 180) {
@@ -335,6 +340,10 @@ class Game extends Component {
                 if (xShift == 0) { xShift = gridSize }
                 newy += (xShift / (Math.tan((angle + 270) * radiansConversion))); // going down
                 newx -= xShift; // going left
+                if(newx>mapWidthInPixels) {newx=mapWidthInPixels};
+                if(newy>mapHeightInPixels) {newy=mapHeightInPixels};
+                if(newx < 0){newx=0}
+                if(newy<0){newy=0}
                 tempLengthX = this.getLineLengthBetweenPoints(x, y, newx, newy);
             }
             if (angle > 180 && angle <= 270) {
@@ -342,6 +351,10 @@ class Game extends Component {
                 if (xShift == 0) { xShift = gridSize }
                 newy -= (xShift * (Math.tan((angle + 180) * radiansConversion))); // going up
                 newx -= xShift; // going left
+                if(newx>mapWidthInPixels) {newx=mapWidthInPixels};
+                if(newy>mapHeightInPixels) {newy=mapHeightInPixels};
+                if(newx < 0){newx=0}
+                if(newy<0){newy=0}
                 tempLengthX = this.getLineLengthBetweenPoints(x, y, newx, newy);
             }
             if (angle > 270 && angle < 360) {
@@ -349,6 +362,10 @@ class Game extends Component {
                 if (xShift == 0) { xShift = gridSize }
                 newy -= (xShift / (Math.tan((angle + 90) * radiansConversion))); // going up
                 newx += xShift; // going right
+                if(newx>mapWidthInPixels) {newx=mapWidthInPixels};
+                if(newy>mapHeightInPixels) {newy=mapHeightInPixels};
+                if(newx < 0){newx=0}
+                if(newy<0){newy=0}
                 tempLengthX = this.getLineLengthBetweenPoints(x, y, newx, newy);
             }
 
@@ -356,22 +373,22 @@ class Game extends Component {
             let tileX = parseInt(newx / gridSize);
             let tileY = parseInt(newy / gridSize);
 
-            // todo: we could do the check for '1' here.. convenient?
-            if (tileX < 0 || tileY < 0 || tileX > mapWidth || tileY > mapHeight) {
-                // todo: its supposed to get the outermost values here, not stick with last value calculated!
-                break;
-            } else {
-                lineLengthForXAxis = tempLengthX; // keep on increasing
+            lineLengthForXAxis = tempLengthX; // keep on increasing
 
-                // draw dot
-                context.beginPath();
-                context.rect((newx + this.state.grid.gridOffsetX)-1, (newy + this.state.grid.gridOffsetY)-1, 2, 2);
-                context.fillStyle = 'green';
-                context.fill();
+            // draw dot
+            context.beginPath();
+            context.rect((newx + this.state.grid.gridOffsetX)-1, (newy + this.state.grid.gridOffsetY)-1, 2, 2);
+            context.fillStyle = 'green';
+            context.fill();
+
+            if (map[tileY][tileX] != 0) {
+                console.log('wall. not adding line length. breaking.');
+                break;
             }
+
         }
 
-        console.log('calculated line length for X axis is '+lineLengthForXAxis);
+        //console.log('calculated line length for X axis is '+lineLengthForXAxis);
 
         // yshift calculation
         if (angle >   0 && angle <=  90) {}
