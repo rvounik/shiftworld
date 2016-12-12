@@ -44,7 +44,7 @@ class Game extends Component {
             player: {
                 playerXpos: 125,
                 playerYpos: 125,
-                playerRotation: 95.1
+                playerRotation: 300
             },
             gameStates: {
                 initialised: false,
@@ -275,7 +275,6 @@ class Game extends Component {
     }
 
     getLineLengthForAngle(angle) {
-
         // set some constants
         const x = this.state.player.playerXpos;
         const y = this.state.player.playerYpos;
@@ -448,6 +447,9 @@ class Game extends Component {
             let angle = (this.state.player.playerRotation) - (this.state.engine.fieldOfVision / 2); // starting angle for projection
             if (angle < 0) { angle += 360 } // correction if negative value
             angle += i * (this.state.engine.fieldOfVision / this.state.engine.projectionWidth); // this is the ray' rotation, not the player'
+            if (angle == 0 || angle == 360){ angle = 0.1 } // we cant have zeroes, mkay?
+
+            if (debug){ console.log('rotation for current ray is ' + angle) }
 
             let shortestRoute = this.getLineLengthForAngle(angle);
 
