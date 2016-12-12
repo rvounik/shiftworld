@@ -17,6 +17,7 @@ class Game extends Component {
 
         // global state
         this.state = {
+            debug: false,
             context: null,
             mapData: [],
             keys: {
@@ -36,13 +37,13 @@ class Game extends Component {
                 playerSpeed: 1
             },
             grid: {
-                gridSize: 10,
+                gridSize: 50,
                 gridOffsetX: 0,
                 gridOffsetY: 0
             },
             player: {
-                playerXpos: 52,
-                playerYpos: 82,
+                playerXpos: 125,
+                playerYpos: 125,
                 playerRotation: 95.1
             },
             gameStates: {
@@ -81,6 +82,7 @@ class Game extends Component {
         if(this.state.gameStates.title && this.state.gameStates.start) {
             this.updateGameState('title', false);
             this.drawMiniMap();
+            console.log('grid size = '+this.state.grid.gridSize+'x'+this.state.grid.gridSize);
         }
 
         // initialise game if not already done so
@@ -263,60 +265,31 @@ class Game extends Component {
         this.drawProjection();
     }
 
-    /*withinMapBounds(newx, newy) {
-        const map = this.state.mapData[0];
-        const gridSize = this.state.grid.gridSize;
-        let mapWidth = map[0].length * gridSize; // 10
-        let mapHeight = map.length * gridSize; // 25
-
-        // calculate the lookup position for mapData
-        let newtilex = parseInt(newx / gridSize);
-        let newtiley = parseInt(newy / gridSize);
-
-        // first check if newx, newy are out of range of the map by pixels
-        if (newx > mapWidth || newx < 0) {return false}
-        if (newy > mapHeight || newy < 0) {return false}
-
-        // then check if the calculated lookup index for the array is within its bounds
-        if (
-               newtiley > map[0].length
-            || newtiley < 0
-            || newtilex > map.length
-            || newtilex < 0
-            || isNaN(newtilex)
-            || isNaN(newtiley)
-        ) {
-            return false;
-        }
-
-        // last check if there is a wall in the way
-        if (map[newtiley][newtilex] != 0) {
-            return false;
-        }
-
-        return true;
-    }*/
+    drawDebugDot(x, y, colour) {
+        // draw the last dot
+        let context = this.state.context;
+        context.beginPath();
+        context.rect((x + this.state.grid.gridOffsetX)-2, (y + this.state.grid.gridOffsetY)-2, 4, 4);
+        context.fillStyle = colour;
+        context.fill();
+    }
 
     getLineLengthForAngle(angle) {
 
         // set some constants
-        const context = this.state.context;
         const x = this.state.player.playerXpos;
         const y = this.state.player.playerYpos;
         const gridSize = this.state.grid.gridSize;
         const map = this.state.mapData[0];
         const radiansConversion = PI / 180;
-        const mapWidth = map[0].length;
-        const mapHeight = map.length;
-        const mapWidthInPixels = gridSize * mapWidth;
-        const mapHeightInPixels = gridSize * mapHeight;
+        const debug = this.state.debug;
 
         // set some variables
-        let xShift, yShift, tempLengthY, tempLengthX;
+        let xShift, yShift;
         let newx = x;
         let newy = y;
 
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+        // calculate line length until first wall segment for shifts on the x axis
 
         let lineLengthForXAxis = 0;
 
@@ -327,7 +300,6 @@ class Game extends Component {
         let tempx = x;
         let tempy = y;
 
-        // xshift calculation
         while(tileX > 0 && tileY >= 0 && tileX < map[0].length && tileY < map.length){
 
             if(map[tileY][tileX] != '1'){
@@ -357,16 +329,16 @@ class Game extends Component {
                     newx = tempx + xShift; // going right
                 }
 
-                // correct if out of bounds
-                let shouldBreak = false;
-                if(newx > mapWidthInPixels ){ newx=mapWidthInPixels; shouldBreak = true }
-                if(newx < 0 ){ newx = 0; shouldBreak = true }
-                if(newy > mapHeightInPixels ){ newy=mapHeightInPixels; shouldBreak = true }
-                if(newy < 0 ){ newy = 0; shouldBreak = true }
-
+                // before adding to the lineLength, break if out of bounds on y axis
+                if (newx <=0 || newx >= map[0].length * gridSize) {
+                    break;
+                }
                 lineLengthForXAxis = this.getLineLengthBetweenPoints(x, y, newx, newy);
 
-                if(shouldBreak){break}
+                // if out of bounds on y axis, break
+                if (newy <=0 || newy >= map.length * gridSize) {
+                    break;
+                }
 
                 // set new map indices
                 tileX = parseInt(newx / gridSize);
@@ -376,33 +348,30 @@ class Game extends Component {
                 tempy = newy;
 
             } else {
-                // wall
-                break;
+                break; // encountered wall segment
             }
+
+            if (debug){ this.drawDebugDot(newx, newy, 'green') }
 
         }
 
-        // draw the last dot
-        /* context.beginPath();
-        context.rect((newx + this.state.grid.gridOffsetX)-2, (newy + this.state.grid.gridOffsetY)-2, 4, 4);
-        context.fillStyle = 'green';
-        context.fill();*/
+        if (debug){ console.log('x (green) = ' + lineLengthForXAxis) }
 
-// YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
+        // calculate line length until first wall segment for shifts on the y axis
 
         let lineLengthForYAxis = 0;
 
-        // set initial map indices
+        // reset some values
         tileX = parseInt(x / gridSize);
         tileY = parseInt(y / gridSize);
-
         tempx = x;
         tempy = y;
+        newx = x;
+        newy = y;
 
-        // yshift calculation
-        while(tileX > 0 && tileY >= 0 && tileX < map[0].length && tileY < map.length){
+        while (tileX > 0 && tileY >= 0 && tileX < map[0].length && tileY < map.length){
 
-            if(map[tileY][tileX] != '1'){
+            if (map[tileY][tileX] != '1'){
 
                 if (angle > 0 && angle <= 90) {
                     newy > gridSize ? yShift = gridSize - (newy % gridSize) : yShift = gridSize - newy; // going right
@@ -429,16 +398,17 @@ class Game extends Component {
                     newy = tempy - yShift; // going right
                 }
 
-                // correct if out of bounds
-                let shouldBreak = false;
-                if(newx > mapWidthInPixels ){ newx=mapWidthInPixels; shouldBreak = true }
-                if(newx < 0 ){ newx = 0; shouldBreak = true }
-                if(newy > mapHeightInPixels ){ newy=mapHeightInPixels; shouldBreak = true }
-                if(newy < 0 ){ newy = 0; shouldBreak = true }
+                // before adding to the lineLength, break if out of bounds on y axis
+                if (newy <= 0 || newy >= map.length * gridSize){
+                    break;
+                }
 
                 lineLengthForYAxis = this.getLineLengthBetweenPoints(x, y, newx, newy);
 
-                if(shouldBreak){break}
+                // if out of bounds on x axis, break
+                if (newx <=0 || newx >= map[0].length * gridSize){
+                    break;
+                }
 
                 // set new map indices
                 tileX = parseInt(newx / gridSize);
@@ -448,22 +418,19 @@ class Game extends Component {
                 tempy = newy;
 
             } else {
-                // wall
-                break;
+                break; // encountered wall segment
             }
+
+            if (debug){ this.drawDebugDot(newx, newy, 'red') }
 
         }
 
-        // draw the last dot
-        /*
-        context.beginPath();
-        context.rect((newx + this.state.grid.gridOffsetX)-2, (newy + this.state.grid.gridOffsetY)-2, 4, 4);
-        context.fillStyle = 'red';
-        context.fill();*/
+        if (debug){ console.log('y (red) = ' + lineLengthForYAxis) }
 
         // calculate the definitive shortest route to nearest wall
         let shortestRoute = lineLengthForXAxis <= lineLengthForYAxis ? lineLengthForXAxis : lineLengthForYAxis;
-        //console.log('hitting a wall at '+shortestRoute+' pixels');
+
+        if (debug){ console.log('shortest route is '+shortestRoute+' pixels') }
 
         // return shortest length
         return shortestRoute;
@@ -471,10 +438,10 @@ class Game extends Component {
 
     drawProjection() {
         const context = this.state.context;
-        //const debugProjection = false;
-        //const resolution = this.state.engine.maxWidth / this.state.engine.projectionWidth;
+        const debug = this.state.debug;
+
+        const resolution = this.state.engine.maxWidth / this.state.engine.projectionWidth;
         //const projectionDistance = (this.state.engine.projectionWidth / 5) / Math.tan((fov / 2) * (PI / 180));
-        // let debugLineArray = [];
 
         for(let i = 0; i < this.state.engine.projectionWidth; i ++) {
             // re-determine angle for current 'ray' and check if valid
@@ -484,23 +451,21 @@ class Game extends Component {
 
             let shortestRoute = this.getLineLengthForAngle(angle);
 
-// DRAW WALL SECTION WITH ITS HEIGHT RELATED TO ITS DISTANCE
+            // draw wall section with its height related to its distance
 
-            // draw the wall section
             context.beginPath();
             context.rect(
-                i * (this.state.engine.projectionWidth / this.state.engine.fieldOfVision),
-                shortestRoute / 2,
-                (this.state.engine.projectionWidth / this.state.engine.fieldOfVision),
+                i * resolution,
+                250 + (shortestRoute / 2),
+                resolution,
                 255 - shortestRoute
             );
-            // let colorval = parseInt(Math.pow(sliceHeight, 2) / 255); // the closer, the brighter
-            let colorval = 255;
+            let colorval = parseInt(Math.pow((255 - shortestRoute), 2) / 200); // the closer, the brighter
             context.fillStyle = 'rgba(0, '+colorval+', 0, 1)';
             context.fill();
 
             // to prevent crashes immediately set i to the end value for now
-            //i = this.state.engine.projectionWidth;
+            if (debug){ i = this.state.engine.projectionWidth }
         }
     }
 
