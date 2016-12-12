@@ -37,14 +37,14 @@ class Game extends Component {
                 playerSpeed: 1
             },
             grid: {
-                gridSize: 50,
+                gridSize: 10,
                 gridOffsetX: 0,
                 gridOffsetY: 0
             },
             player: {
-                playerXpos: 125,
+                playerXpos: 50,
                 playerYpos: 125,
-                playerRotation: 300
+                playerRotation: 270
             },
             gameStates: {
                 initialised: false,
@@ -55,7 +55,7 @@ class Game extends Component {
             }
         };
 
-        // local state (do not put these in the state!)
+        // local state (do not put this in the state!)
         this.bounds = {};
 
         // debugger
@@ -82,7 +82,6 @@ class Game extends Component {
         if(this.state.gameStates.title && this.state.gameStates.start) {
             this.updateGameState('title', false);
             this.drawMiniMap();
-            console.log('grid size = '+this.state.grid.gridSize+'x'+this.state.grid.gridSize);
         }
 
         // initialise game if not already done so
@@ -109,7 +108,7 @@ class Game extends Component {
     // helper function that clears the canvas
     clearCanvas() {
         const context= this.state.context;
-        context.fillStyle = "#000";
+        context.fillStyle = 'black';
         context.fillRect( 0, 0, this.state.engine.maxWidth, this.state.engine.maxHeight );
         // alternative: this.state.context.clearRect(0, 0, this.state.engine.maxWidth, this.state.engine.maxHeight);
     }
@@ -131,7 +130,7 @@ class Game extends Component {
 
         this.setState(newState);
 
-        if (this.debug){console.log('changed gameState for '+key+' to '+value)}
+        if (this.debug){ console.log('changed gameState for '+key+' to '+value) }
     }
 
     // helper function that checks whether user clicked within an active boundary range
@@ -265,15 +264,15 @@ class Game extends Component {
         this.drawProjection();
     }
 
-    drawDebugDot(x, y, colour) {
-        // draw the last dot
+    drawDebugIndicationMarker(x, y, colour) {
         let context = this.state.context;
         context.beginPath();
-        context.rect((x + this.state.grid.gridOffsetX)-2, (y + this.state.grid.gridOffsetY)-2, 4, 4);
+        context.rect((x + this.state.grid.gridOffsetX) - 2, (y + this.state.grid.gridOffsetY) - 2, 4, 4);
         context.fillStyle = colour;
         context.fill();
     }
 
+    // todo: move to component
     getLineLengthForAngle(angle) {
         // set some constants
         const x = this.state.player.playerXpos;
@@ -299,43 +298,43 @@ class Game extends Component {
         let tempx = x;
         let tempy = y;
 
-        while(tileX > 0 && tileY >= 0 && tileX < map[0].length && tileY < map.length){
+        while (tileX > 0 && tileY >= 0 && tileX < map[0].length && tileY < map.length) {
 
-            if(map[tileY][tileX] != '1'){
+            if (map[tileY][tileX] != '1') {
 
                 if (angle > 0 && angle <= 90) {
-                    newx > gridSize ? xShift = gridSize - (newx % gridSize) : xShift = gridSize - newx; // going right
+                    newx > gridSize ? xShift = gridSize - (newx % gridSize) : xShift = gridSize - newx;
                     if (xShift == 0) { xShift = gridSize }
-                    newy = tempy + (xShift * (Math.tan(angle * radiansConversion))); // going down
-                    newx = tempx + xShift; // going right
+                    newy = tempy + (xShift * (Math.tan(angle * radiansConversion)));
+                    newx = tempx + xShift;
                 }
                 if (angle > 90 && angle <= 180) {
-                    newx < gridSize ? xShift = newx : xShift = (newx % gridSize); // going left
+                    newx < gridSize ? xShift = newx : xShift = (newx % gridSize);
                     if (xShift == 0) { xShift = gridSize }
-                    newy = tempy + (xShift / (Math.tan((angle + 270) * radiansConversion))); // going down
-                    newx = tempx - xShift; // going left
+                    newy = tempy + (xShift / (Math.tan((angle + 270) * radiansConversion)));
+                    newx = tempx - xShift;
                 }
                 if (angle > 180 && angle <= 270) {
-                    newx < gridSize ? xShift = newx : xShift = (newx % gridSize); // going left
+                    newx < gridSize ? xShift = newx : xShift = (newx % gridSize);
                     if (xShift == 0) { xShift = gridSize }
-                    newy = tempy - (xShift * (Math.tan((angle + 180) * radiansConversion))); // going up
-                    newx = tempx - xShift; // going left
+                    newy = tempy - (xShift * (Math.tan((angle + 180) * radiansConversion)));
+                    newx = tempx - xShift;
                 }
                 if (angle > 270 && angle < 360) {
-                    newx > gridSize ? xShift = gridSize - (newx % gridSize) : xShift = gridSize - newx; // going right
+                    newx > gridSize ? xShift = gridSize - (newx % gridSize) : xShift = gridSize - newx;
                     if (xShift == 0) { xShift = gridSize }
-                    newy = tempy - (xShift / (Math.tan((angle + 90) * radiansConversion))); // going up
-                    newx = tempx + xShift; // going right
+                    newy = tempy - (xShift / (Math.tan((angle + 90) * radiansConversion)));
+                    newx = tempx + xShift;
                 }
 
-                // before adding to the lineLength, break if out of bounds on y axis
-                if (newx <=0 || newx >= map[0].length * gridSize) {
+                // before adding to the lineLength, break if out of bounds on x axis
+                if (newx <= 0 || newx >= map[0].length * gridSize) {
                     break;
                 }
                 lineLengthForXAxis = this.getLineLengthBetweenPoints(x, y, newx, newy);
 
                 // if out of bounds on y axis, break
-                if (newy <=0 || newy >= map.length * gridSize) {
+                if (newy <= 0 || newy >= map.length * gridSize) {
                     break;
                 }
 
@@ -350,11 +349,11 @@ class Game extends Component {
                 break; // encountered wall segment
             }
 
-            if (debug){ this.drawDebugDot(newx, newy, 'green') }
+            if (debug) { this.drawDebugIndicationMarker(newx, newy, 'green') }
 
         }
 
-        if (debug){ console.log('x (green) = ' + lineLengthForXAxis) }
+        if (debug) { console.log('x (green) = ' + lineLengthForXAxis) }
 
         // calculate line length until first wall segment for shifts on the y axis
 
@@ -367,34 +366,36 @@ class Game extends Component {
         tempy = y;
         newx = x;
         newy = y;
+        xShift = 0;
+        yShift =0;
 
-        while (tileX > 0 && tileY >= 0 && tileX < map[0].length && tileY < map.length){
+        while (tileX > 0 && tileY >= 0 && tileX < map[0].length && tileY < map.length) {
 
             if (map[tileY][tileX] != '1'){
 
                 if (angle > 0 && angle <= 90) {
-                    newy > gridSize ? yShift = gridSize - (newy % gridSize) : yShift = gridSize - newy; // going right
+                    newy > gridSize ? yShift = gridSize - (newy % gridSize) : yShift = gridSize - newy;
                     if (yShift == 0) { yShift = gridSize }
-                    newx = tempx + (yShift / (Math.tan(angle * radiansConversion))); // going down
-                    newy = tempy + yShift; // going right
+                    newx = tempx + (yShift / (Math.tan(angle * radiansConversion)));
+                    newy = tempy + yShift;
                 }
                 if (angle > 90 && angle <= 180) {
-                    newy < gridSize ? yShift = newy : yShift = (newy % gridSize); // going left
+                    newy < gridSize ? yShift = gridSize - newy : yShift = gridSize - (newy % gridSize);
                     if (yShift == 0) { yShift = gridSize }
-                    newx = tempx - (yShift * (Math.tan((angle + 270) * radiansConversion))); // going down
-                    newy = tempy + yShift; // going left
+                    newx = tempx - (yShift * (Math.tan((angle + 270) * radiansConversion)));
+                    newy = tempy + yShift;
                 }
                 if (angle > 180 && angle <= 270) {
-                    newy < gridSize ? yShift = newy : yShift = (newy % gridSize); // going left
+                    newy < gridSize ? yShift = newy : yShift = (newy % gridSize);
                     if (yShift == 0) { yShift = gridSize }
-                    newx = tempx - (yShift / (Math.tan((angle + 180) * radiansConversion))); // going up
-                    newy = tempy - yShift; // going left
+                    newx = tempx - (yShift / (Math.tan((angle + 180) * radiansConversion)));
+                    newy = tempy - yShift;
                 }
                 if (angle > 270 && angle < 360) {
-                    newy > gridSize ? yShift = gridSize - (newy % gridSize) : yShift = gridSize - newy; // going right
+                    newy > gridSize ? yShift = (newy % gridSize): yShift = newy;
                     if (yShift == 0) { yShift = gridSize }
-                    newx = tempx + (yShift * (Math.tan((angle + 90) * radiansConversion))); // going up
-                    newy = tempy - yShift; // going right
+                    newx = tempx + (yShift * (Math.tan((angle + 90) * radiansConversion)));
+                    newy = tempy - yShift;
                 }
 
                 // before adding to the lineLength, break if out of bounds on y axis
@@ -405,7 +406,7 @@ class Game extends Component {
                 lineLengthForYAxis = this.getLineLengthBetweenPoints(x, y, newx, newy);
 
                 // if out of bounds on x axis, break
-                if (newx <=0 || newx >= map[0].length * gridSize){
+                if (newx <= 0 || newx >= map[0].length * gridSize){
                     break;
                 }
 
@@ -420,16 +421,16 @@ class Game extends Component {
                 break; // encountered wall segment
             }
 
-            if (debug){ this.drawDebugDot(newx, newy, 'red') }
+            if (debug){ this.drawDebugIndicationMarker(newx, newy, 'red') }
 
         }
 
-        if (debug){ console.log('y (red) = ' + lineLengthForYAxis) }
+        if (debug) { console.log('y (red) = ' + lineLengthForYAxis) }
 
         // calculate the definitive shortest route to nearest wall
         let shortestRoute = lineLengthForXAxis <= lineLengthForYAxis ? lineLengthForXAxis : lineLengthForYAxis;
 
-        if (debug){ console.log('shortest route is '+shortestRoute+' pixels') }
+        if (debug) { console.log('shortest route is '+shortestRoute+' pixels') }
 
         // return shortest length
         return shortestRoute;
@@ -437,36 +438,34 @@ class Game extends Component {
 
     drawProjection() {
         const context = this.state.context;
-        const debug = this.state.debug;
-
         const resolution = this.state.engine.maxWidth / this.state.engine.projectionWidth;
-        //const projectionDistance = (this.state.engine.projectionWidth / 5) / Math.tan((fov / 2) * (PI / 180));
+        const debug = this.state.debug;
 
         for(let i = 0; i < this.state.engine.projectionWidth; i ++) {
             // re-determine angle for current 'ray' and check if valid
             let angle = (this.state.player.playerRotation) - (this.state.engine.fieldOfVision / 2); // starting angle for projection
-            if (angle < 0) { angle += 360 } // correction if negative value
             angle += i * (this.state.engine.fieldOfVision / this.state.engine.projectionWidth); // this is the ray' rotation, not the player'
-            if (angle == 0 || angle == 360){ angle = 0.1 } // we cant have zeroes, mkay?
+            if (angle <= 0 || angle >= 360) { angle = 0.001 } // we cant have zeroes, mkay? zeroes are bad
 
             if (debug){ console.log('rotation for current ray is ' + angle) }
 
             let shortestRoute = this.getLineLengthForAngle(angle);
 
-            // draw wall section with its height related to its distance
-
+            // draw wall section with its height related to its distance and some magic numbery
             context.beginPath();
             context.rect(
                 i * resolution,
-                250 + (shortestRoute / 2),
+                255 + (shortestRoute / 2),
                 resolution,
                 255 - shortestRoute
             );
-            let colorval = parseInt(Math.pow((255 - shortestRoute), 2) / 200); // the closer, the brighter
+
+            // the closer, the brighter
+            let colorval = parseInt(Math.pow((255 - shortestRoute), 2) / 200);
             context.fillStyle = 'rgba(0, '+colorval+', 0, 1)';
             context.fill();
 
-            // to prevent crashes immediately set i to the end value for now
+            // to prevent crashes immediately set i when debugging
             if (debug){ i = this.state.engine.projectionWidth }
         }
     }
@@ -476,8 +475,8 @@ class Game extends Component {
         this.frameCount ++;
         if(this.timer + (1000 / this.state.engine.fps) < new Date().getTime()) {
             this.fpsTimer ++;
-            if(this.debug && this.fpsTimer>this.state.engine.fps) {
-                //console.log(this.frameCount / this.state.engine.fps);
+            if(this.debug && this.fpsTimer > this.state.engine.fps) {
+                //console.log(this.frameCount / this.state.engine.fps); // uncomment for fps
                 this.fpsTimer = 0;
                 this.frameCount = 0;
             }
@@ -489,7 +488,7 @@ class Game extends Component {
                 let playerRotation = this.state.player.playerRotation;
                 let playerSpeed = this.state.engine.playerSpeed;
 
-                // lets just assume we always need to render something
+                // lets just assume there is always something to render
                 if(this.state.keys.left) {
                     this.state.player.playerRotation -= this.state.engine.rotationSpeed;
                     if(this.state.player.playerRotation < 0){this.state.player.playerRotation += 360}
@@ -515,14 +514,14 @@ class Game extends Component {
                     this.drawProjection();
                 }
 
-                // checkifenemiesneedtomove(); // call to some method that does things with enemy movement
+                // checkifenemiesneedtomove(); // call to some method that does things with enemy movement etc.
             }
 
             this.timer = new Date().getTime();
         }
 
         // keep alive
-        requestAnimationFrame(() => {this.update()});
+        requestAnimationFrame(() => { this.update() });
     }
 
     render() {
