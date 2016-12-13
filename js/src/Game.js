@@ -17,7 +17,7 @@ class Game extends Component {
 
         // global state
         this.state = {
-            debug: false,
+            debug: true,
             context: null,
             mapData: [],
             keys: {
@@ -30,21 +30,21 @@ class Game extends Component {
                 fps: 25,
                 maxWidth: 640,
                 maxHeight: 480,
-                projectionWidth: 160,
+                projectionWidth: 16,
                 fieldOfVision: 80,
                 rotationSpeed: 3,
                 lineLength: 50,
                 playerSpeed: 1
             },
             grid: {
-                gridSize: 10,
+                gridSize: 50,
                 gridOffsetX: 0,
                 gridOffsetY: 0
             },
             player: {
-                playerXpos: 50,
+                playerXpos: 145,
                 playerYpos: 125,
-                playerRotation: 270
+                playerRotation: 216
             },
             gameStates: {
                 initialised: false,
@@ -341,6 +341,12 @@ class Game extends Component {
                 // set new map indices
                 tileX = parseInt(newx / gridSize);
                 tileY = parseInt(newy / gridSize);
+
+                // dit is waar het mis gaat. de nieuwe tilex, tiley worden berekend.
+                // de volgende start van de if != 1 check zal blijken dat het een 1 is
+                // maar het kwaad is al geschied: de lengte is al verhoogd hierboven
+                console.log('tilex: '+tileX+', tileY: '+tileY)
+                console.log(map[tileY][tileX]);
 
                 tempx = newx;
                 tempy = newy;
