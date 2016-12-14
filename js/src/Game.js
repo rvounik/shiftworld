@@ -32,9 +32,9 @@ class Game extends Component {
                 maxHeight: 480,
                 projectionWidth: 160,
                 fieldOfVision: 80,
-                rotationSpeed: 3,
+                rotationSpeed: 5,
                 lineLength: 50,
-                playerSpeed: 1
+                playerSpeed: 3
             },
             grid: {
                 gridSize: 50,
@@ -42,9 +42,9 @@ class Game extends Component {
                 gridOffsetY: 0
             },
             player: {
-                playerXpos: 145,
+                playerXpos: 150,
                 playerYpos: 125,
-                playerRotation: 240
+                playerRotation: 180
             },
             gameStates: {
                 initialised: false,
@@ -306,26 +306,26 @@ class Game extends Component {
                     newx > gridSize ? xShift = gridSize - (newx % gridSize) : xShift = gridSize - newx;
                     if (xShift == 0) { xShift = gridSize }
                     newy = tempy + (xShift * (Math.tan(angle * radiansConversion)));
-                    newx = tempx + xShift + 1; // going right, we add 1
+                    newx = tempx + xShift + 0.1; // going right, we add 1
                 }
                 if (angle > 90 && angle <= 180) {
                     newx < gridSize ? xShift = newx : xShift = (newx % gridSize);
                     if (xShift == 0) { xShift = gridSize }
                     newy = tempy + (xShift / (Math.tan((angle + 270) * radiansConversion)));
-                    newx = tempx - xShift - 1; // going left, we add 1
+                    newx = tempx - xShift - 0.1; // going left, we add 1
                 }
                 if (angle > 180 && angle <= 270) {
                     newx < gridSize ? xShift = newx : xShift = (newx % gridSize);
                     if (xShift == 0) { xShift = gridSize }
 
                     newy = tempy - (xShift * (Math.tan((angle + 180) * radiansConversion)));
-                    newx = tempx - xShift - 1; // going left, we add 1
+                    newx = tempx - xShift - 0.1; // going left, we add 1
                 }
                 if (angle > 270 && angle < 360) {
                     newx > gridSize ? xShift = gridSize - (newx % gridSize) : xShift = gridSize - newx;
                     if (xShift == 0) { xShift = gridSize }
                     newy = tempy - (xShift / (Math.tan((angle + 90) * radiansConversion)));
-                    newx = tempx + xShift + 1; // going right, we add 1
+                    newx = tempx + xShift + 0.1; // going right, we add 1
                 }
 
                 // set new map indices
@@ -379,25 +379,25 @@ class Game extends Component {
                     newy > gridSize ? yShift = gridSize - (newy % gridSize) : yShift = gridSize - newy;
                     if (yShift == 0) { yShift = gridSize }
                     newx = tempx + (yShift / (Math.tan(angle * radiansConversion)));
-                    newy = tempy + yShift + 1; // going right, we add 1
+                    newy = tempy + yShift + 0.1; // going right, we add 1
                 }
                 if (angle > 90 && angle <= 180) {
                     newy < gridSize ? yShift = gridSize - newy : yShift = gridSize - (newy % gridSize);
                     if (yShift == 0) { yShift = gridSize }
                     newx = tempx - (yShift * (Math.tan((angle + 270) * radiansConversion)));
-                    newy = tempy + yShift + 1; // going right, we add 1
+                    newy = tempy + yShift + 0.1; // going right, we add 1
                 }
                 if (angle > 180 && angle <= 270) {
                     newy < gridSize ? yShift = newy : yShift = (newy % gridSize);
                     if (yShift == 0) { yShift = gridSize }
                     newx = tempx - (yShift / (Math.tan((angle + 180) * radiansConversion)));
-                    newy = tempy - yShift - 1; // going left, we add 1
+                    newy = tempy - yShift - 0.1; // going left, we add 1
                 }
                 if (angle > 270 && angle < 360) {
                     newy > gridSize ? yShift = (newy % gridSize): yShift = newy;
                     if (yShift == 0) { yShift = gridSize }
                     newx = tempx + (yShift * (Math.tan((angle + 90) * radiansConversion)));
-                    newy = tempy - yShift - 1; // going left, we add 1;
+                    newy = tempy - yShift - 0.1; // going left, we add 1;
                 }
 
                 // set new map indices
@@ -442,6 +442,7 @@ class Game extends Component {
         const context = this.state.context;
         const resolution = this.state.engine.maxWidth / this.state.engine.projectionWidth;
         const debug = this.state.debug;
+        const projectionDistance = (this.state.engine.projectionWidth/2)/Math.tan((this.state.engine.fieldOfVision/2)* (PI / 180)); // distance to projection
 
         for(let i = 0; i < this.state.engine.projectionWidth; i ++) {
             // re-determine angle for current 'ray' and check if valid
@@ -453,11 +454,18 @@ class Game extends Component {
 
             let shortestRoute = this.getLineLengthForAngle(angle);
 
+            // calculate fish eye correction
+            let angleDifference = (this.state.player.playerRotation) - angle;
+            let angleDifferenceInRadians = angleDifference * (PI / 180); // convert to radians
+            let fishEyeCorrection = 0 - (Math.cos(angleDifferenceInRadians)); // cos of angle difference in radians
+
+            let fragmentHeight = ((shortestRoute * (fishEyeCorrection*(shortestRoute/100))/10));
+
             // draw wall section with its height related to its distance and some magic numbery
             context.beginPath();
             context.rect(
                 i * resolution,
-                255 + (shortestRoute / 2),
+                ((this.state.engine.maxHeight - fragmentHeight) / 2) + fragmentHeight,
                 resolution,
                 255 - shortestRoute
             );
