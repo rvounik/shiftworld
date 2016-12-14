@@ -17,7 +17,7 @@ class Game extends Component {
 
         // global state
         this.state = {
-            debug: true,
+            debug: false,
             context: null,
             mapData: [],
             keys: {
@@ -30,7 +30,7 @@ class Game extends Component {
                 fps: 25,
                 maxWidth: 640,
                 maxHeight: 480,
-                projectionWidth: 16,
+                projectionWidth: 160,
                 fieldOfVision: 80,
                 rotationSpeed: 3,
                 lineLength: 50,
@@ -44,7 +44,7 @@ class Game extends Component {
             player: {
                 playerXpos: 145,
                 playerYpos: 125,
-                playerRotation: 216
+                playerRotation: 240
             },
             gameStates: {
                 initialised: false,
@@ -306,47 +306,43 @@ class Game extends Component {
                     newx > gridSize ? xShift = gridSize - (newx % gridSize) : xShift = gridSize - newx;
                     if (xShift == 0) { xShift = gridSize }
                     newy = tempy + (xShift * (Math.tan(angle * radiansConversion)));
-                    newx = tempx + xShift;
+                    newx = tempx + xShift + 1; // going right, we add 1
                 }
                 if (angle > 90 && angle <= 180) {
                     newx < gridSize ? xShift = newx : xShift = (newx % gridSize);
                     if (xShift == 0) { xShift = gridSize }
                     newy = tempy + (xShift / (Math.tan((angle + 270) * radiansConversion)));
-                    newx = tempx - xShift;
+                    newx = tempx - xShift - 1; // going left, we add 1
                 }
                 if (angle > 180 && angle <= 270) {
                     newx < gridSize ? xShift = newx : xShift = (newx % gridSize);
                     if (xShift == 0) { xShift = gridSize }
+
                     newy = tempy - (xShift * (Math.tan((angle + 180) * radiansConversion)));
-                    newx = tempx - xShift;
+                    newx = tempx - xShift - 1; // going left, we add 1
                 }
                 if (angle > 270 && angle < 360) {
                     newx > gridSize ? xShift = gridSize - (newx % gridSize) : xShift = gridSize - newx;
                     if (xShift == 0) { xShift = gridSize }
                     newy = tempy - (xShift / (Math.tan((angle + 90) * radiansConversion)));
-                    newx = tempx + xShift;
-                }
-
-                // before adding to the lineLength, break if out of bounds on x axis
-                if (newx <= 0 || newx >= map[0].length * gridSize) {
-                    break;
-                }
-                lineLengthForXAxis = this.getLineLengthBetweenPoints(x, y, newx, newy);
-
-                // if out of bounds on y axis, break
-                if (newy <= 0 || newy >= map.length * gridSize) {
-                    break;
+                    newx = tempx + xShift + 1; // going right, we add 1
                 }
 
                 // set new map indices
                 tileX = parseInt(newx / gridSize);
                 tileY = parseInt(newy / gridSize);
 
-                // dit is waar het mis gaat. de nieuwe tilex, tiley worden berekend.
-                // de volgende start van de if != 1 check zal blijken dat het een 1 is
-                // maar het kwaad is al geschied: de lengte is al verhoogd hierboven
-                console.log('tilex: '+tileX+', tileY: '+tileY)
-                console.log(map[tileY][tileX]);
+                // before adding to the lineLength, break if out of bounds on x axis
+                if (newx <= 0 || newx >= map[0].length * gridSize) {
+                    break;
+                }
+
+                lineLengthForXAxis = this.getLineLengthBetweenPoints(x, y, newx, newy);
+
+                // if out of bounds on y axis, break
+                if (newy <= 0 || newy >= map.length * gridSize) {
+                    break;
+                }
 
                 tempx = newx;
                 tempy = newy;
@@ -383,26 +379,30 @@ class Game extends Component {
                     newy > gridSize ? yShift = gridSize - (newy % gridSize) : yShift = gridSize - newy;
                     if (yShift == 0) { yShift = gridSize }
                     newx = tempx + (yShift / (Math.tan(angle * radiansConversion)));
-                    newy = tempy + yShift;
+                    newy = tempy + yShift + 1; // going right, we add 1
                 }
                 if (angle > 90 && angle <= 180) {
                     newy < gridSize ? yShift = gridSize - newy : yShift = gridSize - (newy % gridSize);
                     if (yShift == 0) { yShift = gridSize }
                     newx = tempx - (yShift * (Math.tan((angle + 270) * radiansConversion)));
-                    newy = tempy + yShift;
+                    newy = tempy + yShift + 1; // going right, we add 1
                 }
                 if (angle > 180 && angle <= 270) {
                     newy < gridSize ? yShift = newy : yShift = (newy % gridSize);
                     if (yShift == 0) { yShift = gridSize }
                     newx = tempx - (yShift / (Math.tan((angle + 180) * radiansConversion)));
-                    newy = tempy - yShift;
+                    newy = tempy - yShift - 1; // going left, we add 1
                 }
                 if (angle > 270 && angle < 360) {
                     newy > gridSize ? yShift = (newy % gridSize): yShift = newy;
                     if (yShift == 0) { yShift = gridSize }
                     newx = tempx + (yShift * (Math.tan((angle + 90) * radiansConversion)));
-                    newy = tempy - yShift;
+                    newy = tempy - yShift - 1; // going left, we add 1;
                 }
+
+                // set new map indices
+                tileX = parseInt(newx / gridSize);
+                tileY = parseInt(newy / gridSize);
 
                 // before adding to the lineLength, break if out of bounds on y axis
                 if (newy <= 0 || newy >= map.length * gridSize){
@@ -415,10 +415,6 @@ class Game extends Component {
                 if (newx <= 0 || newx >= map[0].length * gridSize){
                     break;
                 }
-
-                // set new map indices
-                tileX = parseInt(newx / gridSize);
-                tileY = parseInt(newy / gridSize);
 
                 tempx = newx;
                 tempy = newy;
