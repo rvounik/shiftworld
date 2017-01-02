@@ -369,7 +369,7 @@ class Game extends Component {
         newx = x;
         newy = y;
         xShift = 0;
-        yShift =0;
+        yShift = 0;
 
         while (tileX > 0 && tileY >= 0 && tileX < map[0].length && tileY < map.length) {
 
@@ -446,28 +446,35 @@ class Game extends Component {
 
         for(let i = 0; i < this.state.engine.projectionWidth; i ++) {
             // re-determine angle for current 'ray' and check if valid
-            let angle = (this.state.player.playerRotation) - (this.state.engine.fieldOfVision / 2); // starting angle for projection
+            let angle = this.state.player.playerRotation - (this.state.engine.fieldOfVision / 2); // starting angle for projection
             angle += i * (this.state.engine.fieldOfVision / this.state.engine.projectionWidth); // this is the ray' rotation, not the player'
-            if (angle <= 0 || angle >= 360) { angle = 0.001 } // we cant have zeroes, mkay? zeroes are bad
+            if (angle < 0) {angle += 360}
+            if (angle >= 360) {angle -= 360}
+
+            if(angle == 0) {angle = 0.0001} // prevent divide by zero
 
             if (debug){ console.log('rotation for current ray is ' + angle) }
 
             let shortestRoute = this.getLineLengthForAngle(angle);
 
             // calculate fish eye correction
-            let angleDifference = (this.state.player.playerRotation) - angle;
+            let angleDifference = this.state.player.playerRotation >=  angle ? this.state.player.playerRotation - angle : angle - this.state.player.playerRotation;
+            if (angleDifference > (this.state.engine.fieldOfVision / 2)) {angleDifference = 360 - angleDifference} // todo: I HATE this fix
             let angleDifferenceInRadians = angleDifference * (PI / 180); // convert to radians
-            let fishEyeCorrection = 0 - (Math.cos(angleDifferenceInRadians)); // cos of angle difference in radians
+            let fishEyeCorrection = (Math.cos(angleDifferenceInRadians)); // cos of angle difference in radians
+            let fragmentHeight = 255 - shortestRoute; // todo: 255 is just a figure that will work. we need this calculated and limited somewhere
+            if (fragmentHeight <= 0) {fragmentHeight = 0.1}
 
-            let fragmentHeight = ((shortestRoute * (fishEyeCorrection*(shortestRoute/100))/10));
+            let fragmentHeightCorrection = fragmentHeight - (fragmentHeight * fishEyeCorrection);
+            let fragmentHeightCorrected = fragmentHeight + (fragmentHeightCorrection / 5); // todo: why cant I just apply the correction?
 
-            // draw wall section with its height related to its distance and some magic numbery
+            // draw the wall section
             context.beginPath();
             context.rect(
                 i * resolution,
-                ((this.state.engine.maxHeight - fragmentHeight) / 2) + fragmentHeight,
+                ((this.state.engine.maxHeight) / 2) - fragmentHeightCorrected / 2,
                 resolution,
-                255 - shortestRoute
+                fragmentHeightCorrected
             );
 
             // the closer, the brighter
@@ -475,8 +482,8 @@ class Game extends Component {
             context.fillStyle = 'rgba(0, '+colorval+', 0, 1)';
             context.fill();
 
-            // to prevent crashes immediately set i when debugging
-            if (debug){ i = this.state.engine.projectionWidth }
+            // to prevent crashes immediately break out of the loop when debugging
+            if (debug){ break }
         }
     }
 
