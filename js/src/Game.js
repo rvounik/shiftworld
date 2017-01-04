@@ -110,7 +110,6 @@ class Game extends Component {
         const context= this.state.context;
         context.fillStyle = 'black';
         context.fillRect( 0, 0, this.state.engine.maxWidth, this.state.engine.maxHeight );
-        // alternative: this.state.context.clearRect(0, 0, this.state.engine.maxWidth, this.state.engine.maxHeight);
     }
 
     // helper function to iterate over object and return them as key,value pairs
@@ -179,7 +178,7 @@ class Game extends Component {
         let context = this.state.context;
 
         imageObj.onload = function() {
-            //make sure image has loaded before rendering button to prevent image appearing after game started
+            // make sure image has loaded before rendering button to prevent image appearing after game started
             context.drawImage(imageObj, 0, 50);
 
             // draw start button
@@ -306,26 +305,26 @@ class Game extends Component {
                     newx > gridSize ? xShift = gridSize - (newx % gridSize) : xShift = gridSize - newx;
                     if (xShift == 0) { xShift = gridSize }
                     newy = tempy + (xShift * (Math.tan(angle * radiansConversion)));
-                    newx = tempx + xShift + 0.1; // going right, we add 1
+                    newx = tempx + xShift + 0.1; // going right, subtract 0.1
                 }
                 if (angle > 90 && angle <= 180) {
                     newx < gridSize ? xShift = newx : xShift = (newx % gridSize);
                     if (xShift == 0) { xShift = gridSize }
                     newy = tempy + (xShift / (Math.tan((angle + 270) * radiansConversion)));
-                    newx = tempx - xShift - 0.1; // going left, we add 1
+                    newx = tempx - xShift - 0.1; // going left, add 0.1
                 }
                 if (angle > 180 && angle <= 270) {
                     newx < gridSize ? xShift = newx : xShift = (newx % gridSize);
                     if (xShift == 0) { xShift = gridSize }
 
                     newy = tempy - (xShift * (Math.tan((angle + 180) * radiansConversion)));
-                    newx = tempx - xShift - 0.1; // going left, we add 1
+                    newx = tempx - xShift - 0.1; // going left, subtract 0.1
                 }
                 if (angle > 270 && angle < 360) {
                     newx > gridSize ? xShift = gridSize - (newx % gridSize) : xShift = gridSize - newx;
                     if (xShift == 0) { xShift = gridSize }
                     newy = tempy - (xShift / (Math.tan((angle + 90) * radiansConversion)));
-                    newx = tempx + xShift + 0.1; // going right, we add 1
+                    newx = tempx + xShift + 0.1; // going right, add 0.1
                 }
 
                 // set new map indices
@@ -379,25 +378,25 @@ class Game extends Component {
                     newy > gridSize ? yShift = gridSize - (newy % gridSize) : yShift = gridSize - newy;
                     if (yShift == 0) { yShift = gridSize }
                     newx = tempx + (yShift / (Math.tan(angle * radiansConversion)));
-                    newy = tempy + yShift + 0.1; // going right, we add 1
+                    newy = tempy + yShift + 0.1; // going right, add 0.1
                 }
                 if (angle > 90 && angle <= 180) {
                     newy < gridSize ? yShift = gridSize - newy : yShift = gridSize - (newy % gridSize);
                     if (yShift == 0) { yShift = gridSize }
                     newx = tempx - (yShift * (Math.tan((angle + 270) * radiansConversion)));
-                    newy = tempy + yShift + 0.1; // going right, we add 1
+                    newy = tempy + yShift + 0.1; // going right, add 0.1
                 }
                 if (angle > 180 && angle <= 270) {
                     newy < gridSize ? yShift = newy : yShift = (newy % gridSize);
                     if (yShift == 0) { yShift = gridSize }
                     newx = tempx - (yShift / (Math.tan((angle + 180) * radiansConversion)));
-                    newy = tempy - yShift - 0.1; // going left, we add 1
+                    newy = tempy - yShift - 0.1; // going left, subtract 0.1
                 }
                 if (angle > 270 && angle < 360) {
                     newy > gridSize ? yShift = (newy % gridSize): yShift = newy;
                     if (yShift == 0) { yShift = gridSize }
                     newx = tempx + (yShift * (Math.tan((angle + 90) * radiansConversion)));
-                    newy = tempy - yShift - 0.1; // going left, we add 1;
+                    newy = tempy - yShift - 0.1; // going left, subtract 0.1;
                 }
 
                 // set new map indices
@@ -459,10 +458,12 @@ class Game extends Component {
 
             // calculate fish eye correction
             let angleDifference = this.state.player.playerRotation >=  angle ? this.state.player.playerRotation - angle : angle - this.state.player.playerRotation;
-            if (angleDifference > (this.state.engine.fieldOfVision / 2)) {angleDifference = 360 - angleDifference} // todo: I HATE this fix
+            if (angleDifference > (this.state.engine.fieldOfVision / 2)) {angleDifference = 360 - angleDifference} // todo: I really dislike this 'fix'
             let angleDifferenceInRadians = angleDifference * (PI / 180); // convert to radians
-            let fishEyeCorrection = (Math.cos(angleDifferenceInRadians)); // cos of angle difference in radians
-            let fragmentHeight = 255 - shortestRoute; // todo: 255 is just a figure that will work. we need this calculated and limited somewhere
+            //let fishEyeCorrection = (Math.cos(angleDifferenceInRadians)); // cos of angle difference in radians
+            let fishEyeCorrection = Math.cos(angle * (PI / 180)); // cos of angle difference
+
+            let fragmentHeight = 255 - shortestRoute; // todo: 255 is just a figure that will work. this is a magic number that needs configuration elsewhere
             if (fragmentHeight <= 0) {fragmentHeight = 0.1}
 
             let fragmentHeightCorrection = fragmentHeight - (fragmentHeight * fishEyeCorrection);
@@ -482,7 +483,7 @@ class Game extends Component {
             context.fillStyle = 'rgba(0, '+colorval+', 0, 1)';
             context.fill();
 
-            // to prevent crashes immediately break out of the loop when debugging
+            // immediately break out of the loop when debugging
             if (debug){ break }
         }
     }
