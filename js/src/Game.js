@@ -30,7 +30,7 @@ class Game extends Component {
                 fps: 25,
                 maxWidth: 640,
                 maxHeight: 480,
-                projectionWidth: 160,
+                projectionWidth: 320,
                 fieldOfVision: 80,
                 rotationSpeed: 5,
                 lineLength: 50,
@@ -43,8 +43,8 @@ class Game extends Component {
             },
             player: {
                 playerXpos: 150,
-                playerYpos: 125,
-                playerRotation: 180
+                playerYpos: 100,
+                playerRotation: 315
             },
             gameStates: {
                 initialised: false,
@@ -59,7 +59,7 @@ class Game extends Component {
         this.bounds = {};
 
         // debugger
-        this.debug = true;
+        this.debug = false;
 
         // fps
         this.timer = new Date().getTime();
@@ -164,6 +164,9 @@ class Game extends Component {
         if(e.keyCode === KEY.RIGHT) keys.right = value;
         this.setState({keys : keys}); // set state (this will trigger the update() method so screen is re-rendered)
 
+        this.drawMiniMap();
+        this.drawProjection();
+
         e.preventDefault();
     }
 
@@ -235,7 +238,7 @@ class Game extends Component {
 
         // we need to draw the line somewhere (pun intended)
         context.beginPath();
-        context.strokeStyle = 'red';
+        context.strokeStyle = 'rgba(255, 0, 0, 0.5)';
         context.lineWidth = '1';
         context.moveTo(x, y);
         context.lineTo(newX, newY);
@@ -253,7 +256,7 @@ class Game extends Component {
             let newY = this.getTranslationPointsForAngle(x, y, rotStart + rotSlice * i, this.state.engine.lineLength)[1];
 
             context.beginPath();
-            context.strokeStyle = 'rgba(255, 0, 0, 0.1)';
+            context.strokeStyle = 'rgba(255, 0, 0, 0.01)';
             context.lineWidth = '1';
             context.moveTo(x, y);
             context.lineTo(newX, newY);
@@ -422,7 +425,7 @@ class Game extends Component {
                 break; // encountered wall segment
             }
 
-            if (debug){ this.drawDebugIndicationMarker(newx, newy, 'red') }
+            if (debug) { this.drawDebugIndicationMarker(newx, newy, 'red') }
 
         }
 
@@ -453,21 +456,19 @@ class Game extends Component {
             if(angle == 0) {angle = 0.0001} // prevent divide by zero
 
             if (debug){ console.log('rotation for current ray is ' + angle) }
-
             let shortestRoute = this.getLineLengthForAngle(angle);
 
-            // calculate fish eye correction
             let angleDifference = this.state.player.playerRotation >=  angle ? this.state.player.playerRotation - angle : angle - this.state.player.playerRotation;
             if (angleDifference > (this.state.engine.fieldOfVision / 2)) {angleDifference = 360 - angleDifference} // todo: I really dislike this 'fix'
             let angleDifferenceInRadians = angleDifference * (PI / 180); // convert to radians
-            //let fishEyeCorrection = (Math.cos(angleDifferenceInRadians)); // cos of angle difference in radians
-            let fishEyeCorrection = Math.cos(angle * (PI / 180)); // cos of angle difference
+            let multiplier = shortestRoute / 100; // determines straightness of the walls
+            let fishEyeCorrection = Math.cos(angleDifferenceInRadians*multiplier); // cos of angle difference in radians
 
-            let fragmentHeight = 255 - shortestRoute; // todo: 255 is just a figure that will work. this is a magic number that needs configuration elsewhere
-            if (fragmentHeight <= 0) {fragmentHeight = 0.1}
+            let fragmentHeight = (255 - shortestRoute) / (fishEyeCorrection * (multiplier) ); // determines how close up the walls appear
+            if (fragmentHeight <= 0) {fragmentHeight = 0.1} // prevents inverted fragments
 
             let fragmentHeightCorrection = fragmentHeight - (fragmentHeight * fishEyeCorrection);
-            let fragmentHeightCorrected = fragmentHeight + (fragmentHeightCorrection / 5); // todo: why cant I just apply the correction?
+            let fragmentHeightCorrected = fragmentHeight + (fragmentHeightCorrection / 5);
 
             // draw the wall section
             context.beginPath();

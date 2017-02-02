@@ -13,7 +13,7 @@ class GridUnit extends Component {
         context.rect(xpos, ypos, gridSize, gridSize);
         context.fillStyle = fillColour;
         context.strokeStyle = '#000';
-        context.lineWidth = '0.1';
+        context.lineWidth = '0.5';
         context.fill();
         context.stroke();
     }
