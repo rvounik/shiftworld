@@ -137,12 +137,14 @@ class Game extends Component {
 
     // helper function that checks whether user clicked within an active boundary range
     clickWithinBoundsHandler(event){
-        // todo: take scrolltop into account
+        const offsetLeft = document.getElementById("canvas").offsetLeft;
+        const offsetTop = document.getElementById("canvas").offsetTop;
+
         if (
-            event.clientX >= this.bounds.xMin
-            && event.clientX <= this.bounds.xMax
-            && event.clientY >= this.bounds.yMin
-            && event.clientY <= this.bounds.yMax
+            event.clientX-offsetLeft >= this.bounds.xMin
+            && event.clientX-offsetLeft <= this.bounds.xMax
+            && event.clientY-offsetTop >= this.bounds.yMin
+            && event.clientY-offsetTop <= this.bounds.yMax
         ) {
             // executes the action that was registered for these boundaries, then resets them
             this.bounds.action();

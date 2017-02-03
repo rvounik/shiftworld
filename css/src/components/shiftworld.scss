@@ -31,6 +31,7 @@ body {
             max-width: unset;
         }
         .canvas-container {
+            margin-top: 80px;
             width: auto;
             height: auto;
             background: #000;
@@ -42,6 +43,16 @@ body {
             #canvas {
                 width: 100%;
                 max-width: 640px;
+            }
+        }
+
+        aside {
+            display: block;
+            clear: both;
+            margin-top: 20px;
+            p {
+                font-family: Arial;
+                font-size: 1rem;
             }
         }
     }
