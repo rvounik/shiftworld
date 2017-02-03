@@ -8,7 +8,9 @@ const KEY = {
     UP:  38,
     DOWN: 40,
     LEFT: 37,
-    RIGHT: 39
+    RIGHT: 39,
+    MAP: 77,
+    DEBUG: 68
 }, PI = 3.14159265359;
 
 class Game extends Component {
@@ -39,12 +41,13 @@ class Game extends Component {
             grid: {
                 gridSize: 50,
                 gridOffsetX: 0,
-                gridOffsetY: 0
+                gridOffsetY: 0,
+                gridAlpha: 0
             },
             player: {
-                playerXpos: 150,
-                playerYpos: 100,
-                playerRotation: 315
+                playerXpos: 239.34600369443555,
+                playerYpos: 83.51788779212639,
+                playerRotation: 105
             },
             gameStates: {
                 initialised: false,
@@ -93,7 +96,7 @@ class Game extends Component {
             // register reusable global window event listener for click events
             window.addEventListener('click', (event) => {this.clickWithinBoundsHandler(event)});
 
-            // to complete initialised, set its gameState to true
+            // to complete initialisation, set gameState to true
             this.updateGameState('initialised', true);
 
             // draw title screen
@@ -129,7 +132,7 @@ class Game extends Component {
 
         this.setState(newState);
 
-        if (this.debug){ console.log('changed gameState for '+key+' to '+value) }
+        if (this.debug){ console.log('changed gameState for ' + key + ' to ' + value) }
     }
 
     // helper function that checks whether user clicked within an active boundary range
@@ -162,8 +165,10 @@ class Game extends Component {
         if(e.keyCode === KEY.DOWN) keys.down = value;
         if(e.keyCode === KEY.LEFT) keys.left = value;
         if(e.keyCode === KEY.RIGHT) keys.right = value;
-        this.setState({keys : keys}); // set state (this will trigger the update() method so screen is re-rendered)
+        if(e.keyCode === KEY.MAP) this.state.grid.gridAlpha = 0.5;
+        if(e.keyCode === KEY.DEBUG) this.state.debug = true;
 
+        this.setState({keys : keys}); // set state (this will trigger the update() method so screen is re-rendered)
         this.drawMiniMap();
         this.drawProjection();
 
@@ -238,7 +243,7 @@ class Game extends Component {
 
         // we need to draw the line somewhere (pun intended)
         context.beginPath();
-        context.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+        context.strokeStyle = 'rgba(255, 0, 0, ' + this.state.grid.gridAlpha + ')';
         context.lineWidth = '1';
         context.moveTo(x, y);
         context.lineTo(newX, newY);
@@ -256,7 +261,7 @@ class Game extends Component {
             let newY = this.getTranslationPointsForAngle(x, y, rotStart + rotSlice * i, this.state.engine.lineLength)[1];
 
             context.beginPath();
-            context.strokeStyle = 'rgba(255, 0, 0, 0.01)';
+            context.strokeStyle = 'rgba(255, 0, 0, ' + (this.state.grid.gridAlpha / 50) + ')';
             context.lineWidth = '1';
             context.moveTo(x, y);
             context.lineTo(newX, newY);
@@ -363,7 +368,7 @@ class Game extends Component {
 
         let lineLengthForYAxis = 0;
 
-        // reset some values
+        // reset some reused values
         tileX = parseInt(x / gridSize);
         tileY = parseInt(y / gridSize);
         tempx = x;
@@ -444,7 +449,6 @@ class Game extends Component {
         const context = this.state.context;
         const resolution = this.state.engine.maxWidth / this.state.engine.projectionWidth;
         const debug = this.state.debug;
-        const projectionDistance = (this.state.engine.projectionWidth/2)/Math.tan((this.state.engine.fieldOfVision/2)* (PI / 180)); // distance to projection
 
         for(let i = 0; i < this.state.engine.projectionWidth; i ++) {
             // re-determine angle for current 'ray' and check if valid
@@ -457,31 +461,35 @@ class Game extends Component {
 
             if (debug){ console.log('rotation for current ray is ' + angle) }
             let shortestRoute = this.getLineLengthForAngle(angle);
+            let fragmentHeight = (255 - shortestRoute);
 
-            let angleDifference = this.state.player.playerRotation >=  angle ? this.state.player.playerRotation - angle : angle - this.state.player.playerRotation;
-            if (angleDifference > (this.state.engine.fieldOfVision / 2)) {angleDifference = 360 - angleDifference} // todo: I really dislike this 'fix'
-            let angleDifferenceInRadians = angleDifference * (PI / 180); // convert to radians
-            let multiplier = shortestRoute / 100; // determines straightness of the walls
-            let fishEyeCorrection = Math.cos(angleDifferenceInRadians*multiplier); // cos of angle difference in radians
+            // for fragments up close, apply fish eye correction
+            if(fragmentHeight > 25) {
+                let angleDifference = this.state.player.playerRotation >=  angle ? this.state.player.playerRotation - angle : angle - this.state.player.playerRotation;
+                if (angleDifference > (this.state.engine.fieldOfVision / 2)) {angleDifference = 360 - angleDifference}
+                let angleDifferenceInRadians = angleDifference * (PI / 180); // convert to radians
+                let multiplier = shortestRoute / 100; // determines straightness of the walls (tweakable)
+                let fishEyeCorrection = Math.cos(angleDifferenceInRadians * (multiplier / 1.25)); // cos of angle difference in radians
+                fragmentHeight = fragmentHeight / (fishEyeCorrection * multiplier ); // determines how close up the walls appear (tweakable)
+                let fragmentHeightCorrection = fragmentHeight - (fragmentHeight * fishEyeCorrection);
+                let fragmentHeightCorrected = fragmentHeight + (fragmentHeightCorrection / 10);
+                fragmentHeight = fragmentHeightCorrected;
+            }
 
-            let fragmentHeight = (255 - shortestRoute) / (fishEyeCorrection * (multiplier) ); // determines how close up the walls appear
-            if (fragmentHeight <= 0) {fragmentHeight = 0.1} // prevents inverted fragments
-
-            let fragmentHeightCorrection = fragmentHeight - (fragmentHeight * fishEyeCorrection);
-            let fragmentHeightCorrected = fragmentHeight + (fragmentHeightCorrection / 5);
+            if (fragmentHeight < 0) {fragmentHeight = 0.00000001} // under certain conditions, fragments can have negative values
 
             // draw the wall section
             context.beginPath();
             context.rect(
                 i * resolution,
-                ((this.state.engine.maxHeight) / 2) - fragmentHeightCorrected / 2,
+                (this.state.engine.maxHeight / 2) - fragmentHeight / 2,
                 resolution,
-                fragmentHeightCorrected
+                fragmentHeight
             );
 
             // the closer, the brighter
             let colorval = parseInt(Math.pow((255 - shortestRoute), 2) / 200);
-            context.fillStyle = 'rgba(0, '+colorval+', 0, 1)';
+            context.fillStyle = 'rgba(0, ' + colorval + ', 0, 1)';
             context.fill();
 
             // immediately break out of the loop when debugging

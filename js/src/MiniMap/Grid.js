@@ -20,9 +20,8 @@ class Grid extends Component {
     }
 
     initialiseGridUnits() {
-        const {gridSize, gridOffsetX} = this.props.grid;
+        const {gridSize, gridOffsetX, gridAlpha} = this.props.grid;
         const {context, mapData} = this.props;
-        const alpha = 0.01;
 
         let xpos = this.props.grid.gridOffsetX;
         let ypos = this.props.grid.gridOffsetY;
@@ -34,7 +33,7 @@ class Grid extends Component {
                     xpos: xpos,
                     ypos: ypos,
                     context: context,
-                    fillColour: (key == 1 ? 'rgba(99, 99, 99, '+alpha+')' : 'rgba(255, 255, 255, '+alpha+')'),
+                    fillColour: (key == 1 ? 'rgba(99, 99, 99, '+gridAlpha+')' : 'rgba(255, 255, 255, '+gridAlpha+')'),
                     gridSize: gridSize
                 });
                 gridUnits.push(square);
