@@ -10,3 +10,5 @@ some experimental raycast game engine using React and Canvas
 - press D for debug mode
 
 ![Screenshot](/assets/screenshots/20170104.png?raw=true)
+
+rvo, 2017
